@@ -1,58 +1,205 @@
+import pandas as pd
 import streamlit as st
+import plotly.express as px
 from datetime import datetime
+from io import BytesIO
 
 from src.pdf_parser import extract_pdf_tables
 from src.charts import create_chart
 from src.export_utils import export_buttons
 
+# ===== CONFIG =====
+st.set_page_config(page_title="DA Dashboard", layout="wide")
+
+# ===== LOAD CSS =====
 def load_css():
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 load_css()
 
-# TITLE
-st.markdown(
-'<div class="main-title">Mô phỏng phổ điểm và kiến nghị giáo viên</div>',
-unsafe_allow_html=True
+# ===== LANGUAGE =====
+lang = st.sidebar.selectbox(
+    "Language",
+    ["English", "Tiếng Việt"]
 )
 
-# DESCRIPTION
-st.markdown(
-'<div class="sub-title">Upload file PDF bảng điểm và tạo biểu đồ phân tích</div>',
-unsafe_allow_html=True
-)
+TEXT = {
+    "title": {
+        "English": "PDF Data Dashboard",
+        "Tiếng Việt": "Phân tích dữ liệu từ PDF"
+    },
+    "upload": {
+        "English": "Upload PDF",
+        "Tiếng Việt": "Tải file PDF"
+    },
+    "analysis": {
+        "English": "Data Analysis",
+        "Tiếng Việt": "Phân tích dữ liệu"
+    },
+    "boxplot": {
+        "English": "Boxplot",
+        "Tiếng Việt": "Biểu đồ Boxplot"
+    },
+    "about": {
+        "English": "About",
+        "Tiếng Việt": "Giới thiệu"
+    },
+    "download": {
+        "English": "Download",
+        "Tiếng Việt": "Tải xuống"
+    },
+    "prompt": {
+        "English": "Enter your request",
+        "Tiếng Việt": "Nhập yêu cầu"
+    }
+}
 
-uploaded_files = st.file_uploader(
-    "Tải file PDF",
+# ===== SIDEBAR =====
+st.sidebar.title("📊 Dashboard")
+
+uploaded_file = st.sidebar.file_uploader(
+    TEXT["upload"][lang],
     type=["pdf"],
     accept_multiple_files=True
 )
 
-if uploaded_files:
+# ===== MAIN =====
+st.title(TEXT["title"][lang])
 
-    df = extract_pdf_tables(uploaded_files)
+# ===== NO FILE =====
+if not uploaded_file:
+    st.info("Upload PDF to start")
+    st.stop()
 
-    if df is not None:
-        
-        base_name = datetime.now().strftime("merged_%Y-%m-%d_%H-%M-%S")
+# ===== PROCESS PDF =====
+pdf_files = [BytesIO(f.getvalue()) for f in uploaded_file]
+df = extract_pdf_tables(pdf_files)
 
+if df is None:
+    st.error("No table found in PDF")
+    st.stop()
+
+# ===== TABS =====
+tab1, tab2, tab3 = st.tabs([
+    TEXT["analysis"][lang],
+    TEXT["boxplot"][lang],
+    TEXT["about"][lang]
+])
+
+
+with tab1:
+
+    st.subheader("Data Preview")
+    st.dataframe(df, use_container_width=True)
+
+    st.divider()
+
+    # DOWNLOAD + CONTROL
+    col1, col2 = st.columns([3, 1])
+
+    with col2:
+        st.markdown(f"### {TEXT['download'][lang]}")
+        base_name = datetime.now().strftime("data_%Y%m%d")
         export_buttons(df, base_name)
 
-        st.dataframe(df)
+st.markdown("### 📊 Interactive Analysis")
 
-        st.markdown("### Ví dụ prompt")
+analysis_option = st.selectbox(
+    "Choose analysis",
+    [
+        "Class performance overview",
+        "Score distribution (pass vs fail)",
+        "Top performing students",
+        "Students at risk",
+        "Subject difficulty comparison"
+    ]
+)
 
-        st.markdown("""
-            • phân bố điểm tổng  
-            • trung bình theo lớp  
-            • top sinh viên
-            """)
+numeric_cols = df.select_dtypes(include='number').columns
+df["Average"] = df[numeric_cols].mean(axis=1)
 
-        prompt = st.text_input(
-            "Nhập yêu cầu phân tích",
-            placeholder="Ví dụ: phân bố điểm"
-        )
+if analysis_option == "Class performance overview":
 
-        if prompt:
-            create_chart(prompt, df)
+    avg_score = df["Average"].mean()
+    pass_rate = (df["Average"] >= 5).mean() * 100
+
+    col1, col2 = st.columns(2)
+
+    col1.metric("Average Score", round(avg_score, 2))
+    col2.metric("Pass Rate (%)", round(pass_rate, 1))
+elif analysis_option == "Score distribution (pass vs fail)":
+
+    df["Status"] = df["Average"].apply(lambda x: "Pass" if x >= 5 else "Fail")
+
+    fig = px.pie(df, names="Status", title="Pass vs Fail Distribution")
+
+    st.plotly_chart(fig, use_container_width=True)
+elif analysis_option == "Top performing students":
+
+    top = df.sort_values("Average", ascending=False).head(10)
+
+    fig = px.bar(
+        top,
+        x="Average",
+        y=top.columns[1],  # thường là tên SV
+        orientation='h',
+        title="Top 10 Students"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+elif analysis_option == "Students at risk":
+
+    risk = df[df["Average"] < 5]
+
+    fig = px.histogram(
+        risk,
+        x="Average",
+        title="Students at Risk (<5)"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+elif analysis_option == "Subject difficulty comparison":
+
+    avg = df.select_dtypes(include='number').mean().reset_index()
+    avg.columns = ["Subject", "Average"]
+
+    fig = px.bar(
+        avg,
+        x="Subject",
+        y="Average",
+        title="Average Score by Subject"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+with tab2:
+
+    st.subheader("Boxplot Analysis")
+
+    col_x = st.selectbox("X (Category)", df.columns)
+    col_y = st.selectbox("Y (Value)", df.columns)
+
+    if col_x and col_y:
+        create_chart(f"boxplot {col_x} {col_y}", df)
+
+
+with tab3:
+
+    st.header("About")
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=120)
+
+    with col2:
+        st.write("""
+        ### Your Name
+
+        Project:
+        - Convert PDF → Data
+        - Interactive charts
+        - Data analysis dashboard
+
+        Teacher: Your Teacher Name
+        """)
