@@ -1,30 +1,130 @@
-.stApp {
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: white;
+/* ===== GLOBAL THEME ===== */
+:root {
+    --bg-main: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-accent: #312e81;
+
+    --text-primary: #ffffff;
+    --text-secondary: #cbd5f5;
+
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
 }
 
+/* ===== APP BACKGROUND ===== */
+.stApp {
+    background: linear-gradient(135deg, var(--bg-main), var(--bg-secondary), var(--bg-accent));
+}
+
+/* ===== GLOBAL TEXT ===== */
+* {
+    color: var(--text-secondary) !important;
+}
+
+h1, h2, h3 {
+    color: var(--text-primary) !important;
+}
+
+/* ===== LAYOUT ===== */
 .block-container {
-    max-width: 100%;
+    max-width: 1200px;
     padding: 2rem;
 }
 
-[data-testid="stSidebar"] {
-    background: #020617;
+/* ===== SIDEBAR ===== */
+section[data-testid="stSidebar"] {
+    background: #020617 !important;
+    border-right: 1px solid #1e293b;
 }
 
-/* Button */
-.stButton > button {
-    border-radius: 10px;
-    background: #2563eb;
-    color: white;
+/* ===== BUTTON ===== */
+button {
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover)) !important;
+    color: white !important;
+    border-radius: 10px !important;
+    border: none !important;
+    font-weight: 500;
+    padding: 8px 14px;
 }
 
-/* Input */
+button:hover {
+    opacity: 0.9;
+}
+
+/* ===== SELECTBOX & INPUT ===== */
+.stSelectbox div,
 .stTextInput input {
+    background-color: var(--bg-secondary) !important;
+    border-radius: 8px !important;
+    color: white !important;
+}
+
+/* ===== FILE UPLOADER ===== */
+[data-testid="stFileUploader"] {
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* ===== TABLE ===== */
+.stDataFrame {
+    background-color: var(--bg-secondary) !important;
     border-radius: 10px;
 }
 
-/* Selectbox */
-.stSelectbox div {
-    border-radius: 10px;
+.stDataFrame div {
+    color: white !important;
+}
+
+/* ===== TABS ===== */
+button[role="tab"] {
+    color: #9ca3af !important;
+}
+
+button[role="tab"][aria-selected="true"] {
+    color: white !important;
+    border-bottom: 2px solid var(--primary) !important;
+}
+/* ===== CARD ===== */
+.card {
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* hover effect */
+.card:hover {
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
+    transition: 0.3s;
+}
+.stDownloadButton button {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+/* ===== FORCE FIX SELECTBOX ===== */
+
+/* ô select */
+div[data-baseweb="select"] * {
+    color: white !important;
+}
+
+/* dropdown menu */
+ul[role="listbox"] {
+    background-color: #1e293b !important;
+}
+
+/* từng item */
+li[role="option"] {
+    background-color: #1e293b !important;
+    color: white !important;
+}
+
+/* hover */
+li[role="option"]:hover {
+    background-color: #374151 !important;
+    color: white !important;
 }

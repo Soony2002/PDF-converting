@@ -103,6 +103,7 @@ with tab1:
         base_name = datetime.now().strftime("data_%Y%m%d")
         export_buttons(df, base_name)
 
+
 st.markdown("### 📊 Interactive Analysis")
 
 analysis_option = st.selectbox(
@@ -172,6 +173,8 @@ elif analysis_option == "Subject difficulty comparison":
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    
+
 with tab2:
 
     st.subheader("Boxplot Analysis")
