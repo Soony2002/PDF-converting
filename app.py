@@ -104,75 +104,88 @@ with tab1:
         export_buttons(df, base_name)
 
 
-st.markdown("### 📊 Interactive Analysis")
+    st.markdown("### 📊 Interactive Analysis")
 
-analysis_option = st.selectbox(
-    "Choose analysis",
-    [
-        "Class performance overview",
-        "Score distribution (pass vs fail)",
-        "Top performing students",
-        "Students at risk",
-        "Subject difficulty comparison"
-    ]
-)
-
-numeric_cols = df.select_dtypes(include='number').columns
-df["Average"] = df[numeric_cols].mean(axis=1)
-
-if analysis_option == "Class performance overview":
-
-    avg_score = df["Average"].mean()
-    pass_rate = (df["Average"] >= 5).mean() * 100
-
-    col1, col2 = st.columns(2)
-
-    col1.metric("Average Score", round(avg_score, 2))
-    col2.metric("Pass Rate (%)", round(pass_rate, 1))
-elif analysis_option == "Score distribution (pass vs fail)":
-
-    df["Status"] = df["Average"].apply(lambda x: "Pass" if x >= 5 else "Fail")
-
-    fig = px.pie(df, names="Status", title="Pass vs Fail Distribution")
-
-    st.plotly_chart(fig, use_container_width=True)
-elif analysis_option == "Top performing students":
-
-    top = df.sort_values("Average", ascending=False).head(10)
-
-    fig = px.bar(
-        top,
-        x="Average",
-        y=top.columns[1],  # thường là tên SV
-        orientation='h',
-        title="Top 10 Students"
+    analysis_option = st.selectbox(
+        "Choose analysis",
+        [
+            "Class performance overview",
+            "Score distribution (pass vs fail)",
+            "Top performing students",
+            "Students at risk",
+            "Subject difficulty comparison"
+        ]
     )
 
-    st.plotly_chart(fig, use_container_width=True)
-elif analysis_option == "Students at risk":
+    numeric_cols = df.select_dtypes(include='number').columns
+    df["Average"] = df[numeric_cols].mean(axis=1)
 
-    risk = df[df["Average"] < 5]
+    if analysis_option == "Class performance overview":
 
-    fig = px.histogram(
-        risk,
-        x="Average",
-        title="Students at Risk (<5)"
-    )
+        avg_score = df["Average"].mean()
+        pass_rate = (df["Average"] >= 5).mean() * 100
 
-    st.plotly_chart(fig, use_container_width=True)
-elif analysis_option == "Subject difficulty comparison":
+        col1, col2 = st.columns(2)
 
-    avg = df.select_dtypes(include='number').mean().reset_index()
-    avg.columns = ["Subject", "Average"]
+        col1.metric("Average Score", round(avg_score, 2))
+        col2.metric("Pass Rate (%)", round(pass_rate, 1))
+    elif analysis_option == "Score distribution (pass vs fail)":
 
-    fig = px.bar(
-        avg,
-        x="Subject",
-        y="Average",
-        title="Average Score by Subject"
-    )
+        fig = px.histogram(
+            df,
+            x="Average",
+            nbins=10,
+            title="Score Distribution",
+            color_discrete_sequence=["#6366f1"]
+        )
 
-    st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            template="plotly_dark",
+            bargap=0.1
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+    elif analysis_option == "Top performing students":
+
+        top = df.sort_values("Average", ascending=False).head(10)
+
+        fig = px.bar(
+            top,
+            x="Average",
+            y=top.columns[1],
+            orientation='h',
+            color="Average",
+            title="Top 10 Students",
+        )
+
+        fig.update_layout(template="plotly_dark")
+
+        st.plotly_chart(fig, use_container_width=True)
+    elif analysis_option == "Students at risk":
+
+        risk = df[df["Average"] < 5]
+
+        st.warning(f"{len(risk)} students at risk")
+
+        st.dataframe(risk)
+
+        
+    elif analysis_option == "Subject difficulty comparison":
+
+        avg = df.select_dtypes(include='number').mean().reset_index()
+        avg.columns = ["Subject", "Average"]
+
+        fig = px.bar(
+            avg,
+            x="Subject",
+            y="Average",
+            color="Average",
+            title="Average Score by Subject"
+        )
+
+        fig.update_layout(template="plotly_dark")
+
+        st.plotly_chart(fig, use_container_width=True)
     
 
 with tab2:
