@@ -113,7 +113,7 @@ with tab1:
             "Score distribution (pass vs fail)",
             "Top performing students",
             "Students at risk",
-            "Subject difficulty comparison"
+            "Score relationship (scatter plot)"
         ]
     )
 
@@ -147,43 +147,98 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
     elif analysis_option == "Top performing students":
 
-        top = df.sort_values("Average", ascending=False).head(10)
+        mode = st.selectbox(
+            "Select group",
+            ["Top 10", "Bottom 10"]
+        )
+
+        if mode == "Top 10":
+            data = df.sort_values("Average", ascending=False).head(10)
+            title = "🏆 Top 10 Students"
+        else:
+            data = df.sort_values("Average", ascending=True).head(10)
+            title = "⚠️ Bottom 10 Students"
 
         fig = px.bar(
-            top,
+            data,
             x="Average",
-            y=top.columns[1],
+            y=data.columns[1],
             orientation='h',
             color="Average",
-            title="Top 10 Students",
+            text="Average",
+            title=title,
+            color_continuous_scale="viridis"
         )
 
-        fig.update_layout(template="plotly_dark")
+        fig.update_traces(
+            textposition='outside',
+            hovertemplate="<b>%{y}</b><br>Score: %{x:.2f}<extra></extra>"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=500,
+            xaxis_title="Average Score",
+            yaxis_title="Student",
+            yaxis=dict(autorange="reversed"),
+            margin=dict(l=50, r=50, t=50, b=50)
+        )
 
         st.plotly_chart(fig, use_container_width=True)
-    elif analysis_option == "Students at risk":
+    elif analysis_option == "Score relationship (scatter plot)":
 
-        risk = df[df["Average"] < 5]
+        st.markdown("### 📈 Score Relationship Analysis")
 
-        st.warning(f"{len(risk)} students at risk")
+        col_x = st.selectbox("X axis", ["CC", "GK", "TL"])
+        col_y = st.selectbox("Y axis", ["CK", "Final"])
 
-        st.dataframe(risk)
-
-        
-    elif analysis_option == "Subject difficulty comparison":
-
-        avg = df.select_dtypes(include='number').mean().reset_index()
-        avg.columns = ["Subject", "Average"]
-
-        fig = px.bar(
-            avg,
-            x="Subject",
-            y="Average",
-            color="Average",
-            title="Average Score by Subject"
+        fig = px.scatter(
+            df,
+            x=col_x,
+            y=col_y,
+            hover_name=df.columns[1],
         )
 
-        fig.update_layout(template="plotly_dark")
+        # 🎯 STYLE CHUYÊN NGHIỆP
+        fig.update_traces(
+            marker=dict(
+                size=8,
+                color="#6366f1",     # 1 màu clean
+                opacity=0.6,
+                line=dict(width=0)   # bỏ viền
+            ),
+            hovertemplate=
+            "<b>%{hovertext}</b><br>" +
+            f"{col_x}: %{{x}}<br>" +
+            f"{col_y}: %{{y}}<extra></extra>"
+        )
+
+        fig.update_layout(
+            height=500,
+            title=f"{col_x} vs {col_y}",
+            title_x=0.5,
+
+            # ❌ bỏ nền xám xấu
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+
+            # ❌ bỏ legend
+            showlegend=False,
+
+            # 🎯 grid nhẹ
+            xaxis=dict(
+                title=col_x,
+                showgrid=True,
+                gridcolor="rgba(255,255,255,0.08)",
+                zeroline=False
+            ),
+            yaxis=dict(
+                title=col_y,
+                showgrid=True,
+                gridcolor="rgba(255,255,255,0.08)",
+                zeroline=False
+            ),
+        )
 
         st.plotly_chart(fig, use_container_width=True)
     
