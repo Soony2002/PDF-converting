@@ -127,3 +127,36 @@ li[role="option"]:hover {
     background-color: #374151 !important;
     color: white !important;
 }
+
+.main-title {
+    font-size: 42px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    background-clip: text; 
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: fadeInDown 1s ease;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+div.stButton > button {
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+div.stButton > button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.6);
+}

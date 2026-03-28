@@ -18,83 +18,118 @@ def load_css():
 
 load_css()
 
-# ===== LANGUAGE =====
-lang = st.sidebar.selectbox(
-    "Language",
-    ["English", "Tiếng Việt"]
-)
+# ===== INSIGHT SYSTEM =====
+def generate_insights(df, col=None, col_x=None, col_y=None):
+    insights = []
 
-TEXT = {
-    "title": {
-        "English": "PDF Data Dashboard",
-        "Tiếng Việt": "Phân tích dữ liệu từ PDF"
-    },
-    "upload": {
-        "English": "Upload PDF",
-        "Tiếng Việt": "Tải file PDF"
-    },
-    "analysis": {
-        "English": "Data Analysis",
-        "Tiếng Việt": "Phân tích dữ liệu"
-    },
-    "boxplot": {
-        "English": "Boxplot",
-        "Tiếng Việt": "Biểu đồ Boxplot"
-    },
-    "about": {
-        "English": "About",
-        "Tiếng Việt": "Giới thiệu"
-    },
-    "download": {
-        "English": "Download",
-        "Tiếng Việt": "Tải xuống"
-    },
-    "prompt": {
-        "English": "Enter your request",
-        "Tiếng Việt": "Nhập yêu cầu"
-    }
-}
+    if col:
+        mean = df[col].mean()
+        median = df[col].median()
+        std = df[col].std()
+        skew = df[col].skew()
+        min_val = df[col].min()
+        max_val = df[col].max()
+
+        insights.append(f"Điểm trung bình: {mean:.2f}, trung vị: {median:.2f}")
+
+        if std > 2:
+            insights.append("Dữ liệu phân tán rộng → chênh lệch lớn")
+        else:
+            insights.append("Dữ liệu khá tập trung")
+
+        if skew > 0.5:
+            insights.append("Phân phối lệch phải → nhiều điểm thấp")
+        elif skew < -0.5:
+            insights.append("Phân phối lệch trái → nhiều điểm cao")
+
+        if max_val >= 9:
+            insights.append("Có sinh viên đạt điểm rất cao")
+        if min_val < 3:
+            insights.append("Có nhóm điểm rất thấp cần chú ý")
+
+    if col_x and col_y:
+        corr = df[col_x].corr(df[col_y])
+        insights.append(f"Tương quan giữa {col_x} và {col_y}: {corr:.2f}")
+
+        if corr > 0.7:
+            insights.append("Mối quan hệ rất mạnh")
+        elif corr > 0.4:
+            insights.append("Mối quan hệ trung bình")
+        else:
+            insights.append("Mối quan hệ yếu")
+
+    return insights
+
+def render_report(insights, extra_text=None):
+    html = "<div class='card'>"
+    html += "<h3>📄 Report</h3>"
+
+    for i in insights:
+        html += f"<p>👉 {i}</p>"
+
+    if extra_text:
+        html += f"<p><b>👉 {extra_text}</b></p>"
+
+    html += "</div>"
+
+    st.markdown(html, unsafe_allow_html=True)
 
 # ===== SIDEBAR =====
 st.sidebar.title("📊 Dashboard")
 
 uploaded_file = st.sidebar.file_uploader(
-    TEXT["upload"][lang],
+    "Upload PDF",
     type=["pdf"],
     accept_multiple_files=True
 )
 
 # ===== MAIN =====
-st.title(TEXT["title"][lang])
+st.markdown('<h1 class="main-title">📊 PDF Data Dashboard</h1>', unsafe_allow_html=True)
 
-# ===== NO FILE =====
 if not uploaded_file:
     st.info("Upload PDF to start")
     st.stop()
 
 # ===== PROCESS PDF =====
-pdf_files = [BytesIO(f.getvalue()) for f in uploaded_file]
-df = extract_pdf_tables(pdf_files)
+with st.spinner("Đang xử lý PDF..."):
+    pdf_files = [BytesIO(f.getvalue()) for f in uploaded_file]
+    df = extract_pdf_tables(pdf_files)
 
 if df is None:
     st.error("No table found in PDF")
     st.stop()
 
+
 # ===== TABS =====
 tab1, tab2, tab3 = st.tabs([
-    TEXT["analysis"][lang],
-    TEXT["boxplot"][lang],
-    TEXT["about"][lang]
+    "Analysis",
+    "Boxplot",
+    "About"
 ])
 
+# ================= TAB 1 =================
 with tab1:
+
+    # ===== DATA CLEANING SUMMARY =====
+    clean_html = f"""
+    <div class='card'>
+    <h3>🧹 Data Cleaning Summary</h3>
+    <p>- Số dòng: {len(df)}</p>
+    <p>- Số cột: {df.shape[1]}</p>
+    <p>- Missing: {df.isna().sum().sum()}</p>
+    </div>
+    """
+
+    st.markdown(clean_html, unsafe_allow_html=True)
+
     st.subheader("Data Preview")
     st.dataframe(df, use_container_width=True)
+
     st.divider()
 
     col1, col2 = st.columns([3, 1])
     with col2:
-        st.markdown(f"### {TEXT['download'][lang]}")
+        st.markdown("### Download")
         base_name = datetime.now().strftime("data_%Y%m%d")
         export_buttons(df, base_name)
 
@@ -104,171 +139,142 @@ with tab1:
         "Choose analysis",
         [
             "Class performance overview",
-            "Score distribution (pass vs fail)",
+            "Score distribution",
             "Top performing students",
             "Students at risk",
-            "Score relationship (scatter plot)"
+            "Score relationship"
         ]
     )
 
+    # ===== CLASS OVERVIEW =====
     if analysis_option == "Class performance overview":
         avg_score = df["Final"].mean()
         pass_rate = (df["Final"] >= 5).mean() * 100
+        total = len(df)
 
-        col1, col2 = st.columns(2)
-        col1.metric("Average Score", round(avg_score, 2))
-        col2.metric("Pass Rate (%)", round(pass_rate, 1))
+        col1, col2, col3 = st.columns(3)
 
-    elif analysis_option == "Score distribution (pass vs fail)":
-        df['Status'] = df['Final'].apply(lambda x: 'Đạt (≥5)' if x >= 5 else 'Chưa đạt (<5)')
-        
+        with col1:
+            st.markdown(f"""
+            <div class='card'>
+                <h4>Avg Score</h4>
+                <h2>{avg_score:.2f}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.markdown(f"""
+            <div class='card'>
+                <h4>Pass Rate</h4>
+                <h2>{pass_rate:.1f}%</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col3:
+            st.markdown(f"""
+            <div class='card'>
+                <h4>Total Students</h4>
+                <h2>{total}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ===== DISTRIBUTION =====
+    elif analysis_option == "Score distribution":
+        st.caption("Biểu đồ phân phối điểm số")
+
+        df['Status'] = df['Final'].apply(
+            lambda x: 'Đạt (≥5)' if x >= 5 else 'Chưa đạt (<5)'
+        )
+
         fig = px.histogram(
             df,
             x="Final",
             color="Status",
             nbins=20,
-            marginal="rug",
-            color_discrete_map={'Đạt (≥5)': '#10b981', 'Chưa đạt (<5)': '#ef4444'},
-            title="📊 Phân phối điểm số",
-            labels={"Final": "Điểm tổng kết", "count": "Số lượng sinh viên"},
             opacity=0.8
         )
-        
-        fig.update_layout(
-            template="plotly_dark",
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            xaxis_title="Điểm tổng kết",
-            yaxis_title="Số lượng sinh viên",
-            xaxis=dict(gridcolor="rgba(255,255,255,0.1)", range=[0, 10.5]),
-            yaxis=dict(gridcolor="rgba(255,255,255,0.1)"),
-            legend=dict(
-                title="",
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1,
-                bgcolor="rgba(0,0,0,0.5)"
-            ),
-            hoverlabel=dict(bgcolor="#1e293b", font_size=12)
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Điểm trung bình", f"{df['Final'].mean():.2f}")
-        with col2:
-            st.metric("Điểm cao nhất", f"{df['Final'].max():.2f}")
-        with col3:
-            st.metric("Điểm thấp nhất", f"{df['Final'].min():.2f}")
 
+        st.plotly_chart(fig, use_container_width=True)
+
+        # ===== REPORT =====
+        insights = generate_insights(df, col="Final")
+        render_report(insights, "Phân phối điểm phản ánh mức độ học tập chung")
+
+    # ===== TOP STUDENTS =====
     elif analysis_option == "Top performing students":
         mode = st.selectbox("Chọn nhóm", ["Top 10", "Bottom 10"])
-        
+
         if mode == "Top 10":
             data = df.sort_values("Final", ascending=False).head(10)
-            st.success(f"🏆 Top 10 sinh viên có điểm cao nhất")
+            st.success("🏆 Top 10 sinh viên")
         else:
             data = df.sort_values("Final", ascending=True).head(10)
-            st.warning(f"⚠️ Bottom 10 sinh viên có điểm thấp nhất")
-        
+            st.warning("⚠️ Bottom 10 sinh viên")
+
         st.dataframe(data.iloc[:, 1:], use_container_width=True)
 
+        insights = [
+            "Nhóm sinh viên có kết quả cao nhất",
+            "Có thể dùng làm benchmark cho lớp"
+        ]
+
+        render_report(insights)
+
+    # ===== AT RISK =====
     elif analysis_option == "Students at risk":
         risk = df[df["Final"] < 5]
+
         st.warning(f"{len(risk)} students at risk")
         st.dataframe(risk.iloc[:, 1:])
 
-    elif analysis_option == "Score relationship (scatter plot)":
+        insights = [
+            f"Có {len(risk)} sinh viên thuộc nhóm nguy cơ",
+            "Cần hỗ trợ thêm để cải thiện kết quả"
+        ]
+
+        render_report(insights)
+
+    # ===== SCATTER =====
+    elif analysis_option == "Score relationship":
         col_x = st.selectbox("Trục X", ["CC", "GK", "TL"])
         col_y = st.selectbox("Trục Y", ["CK", "Final"])
-        
+
         corr = df[col_x].corr(df[col_y])
-        
+
         fig = px.scatter(
             df,
             x=col_x,
             y=col_y,
             color="Final",
-            color_continuous_scale="viridis",
-            hover_name=df.columns[2],
             trendline="ols",
-            trendline_color_override="#f97316",
-            title=f"{col_x} vs {col_y} | Hệ số tương quan: {corr:.2f}",
-            labels={col_x: col_x, col_y: col_y, "Final": "Điểm TB"}
+            title=f"{col_x} vs {col_y} | Corr: {corr:.2f}"
         )
-        
-        fig.update_traces(
-            marker=dict(
-                size=10,
-                opacity=0.7,
-                line=dict(width=1, color="white")
-            ),
-            selector=dict(mode='markers')
-        )
-        
-        fig.update_layout(
-            template="plotly_dark",
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            xaxis=dict(
-                title=col_x,
-                gridcolor="rgba(255,255,255,0.1)",
-                zeroline=False,
-                range=[0, 10.5]
-            ),
-            yaxis=dict(
-                title=col_y,
-                gridcolor="rgba(255,255,255,0.1)",
-                zeroline=False,
-                range=[0, 10.5]
-            ),
-            hoverlabel=dict(bgcolor="#1e293b", font_size=12),
-            coloraxis_colorbar=dict(
-                title="Điểm TB",
-                title_font=dict(color="white"),
-                tickfont=dict(color="white")
-            )
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        if corr > 0.7:
-            st.success(f"✅ Tương quan rất mạnh giữa {col_x} và {col_y}")
-        elif corr > 0.4:
-            st.info(f"📈 Tương quan trung bình giữa {col_x} và {col_y}")
-        else:
-            st.warning(f"⚠️ Tương quan yếu giữa {col_x} và {col_y}")
-    
 
+        st.plotly_chart(fig, use_container_width=True)
+
+        # ===== REPORT =====
+        
+        insights = generate_insights(df, col_x=col_x, col_y=col_y)
+        render_report(insights)
+
+
+# ================= TAB 2 =================
 with tab2:
     st.subheader("Boxplot Analysis")
 
-    col_x = st.selectbox("X (Category)", df.columns)
-    col_y = st.selectbox("Y (Value)", df.columns)
+    col_x = st.selectbox("X", df.columns)
+    col_y = st.selectbox("Y", df.columns)
 
     if col_x and col_y:
         create_chart(f"boxplot {col_x} {col_y}", df)
 
-
+# ================= TAB 3 =================
 with tab3:
     st.header("About")
 
-    col1, col2 = st.columns([1, 3])
-
-    with col1:
-        st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=120)
-
-    with col2:
-        st.write("""
-        ### Your Name
-
-        Project:
-        - Convert PDF → Data
-        - Interactive charts
-        - Data analysis dashboard
-
-        Teacher: Your Teacher Name
-        """)
+    st.write("""
+    Project:
+    - Convert PDF → Data
+    - Interactive charts
+    - Data analysis dashboard
+    """)
