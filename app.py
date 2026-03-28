@@ -185,6 +185,13 @@ with tab1:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+    elif analysis_option == "Students at risk":
+
+        risk = df[df["Average"] < 5]
+
+        st.warning(f"{len(risk)} students at risk")
+
+        st.dataframe(risk)
     elif analysis_option == "Score relationship (scatter plot)":
 
         st.markdown("### 📈 Score Relationship Analysis")
