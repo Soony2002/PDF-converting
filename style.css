@@ -3,10 +3,8 @@
     --bg-main: #0f172a;
     --bg-secondary: #1e293b;
     --bg-accent: #312e81;
-
     --text-primary: #ffffff;
     --text-secondary: #cbd5f5;
-
     --primary: #6366f1;
     --primary-hover: #4f46e5;
 }
@@ -45,9 +43,11 @@ button {
     border: none !important;
     font-weight: 500;
     padding: 8px 14px;
+    transition: all 0.3s ease;
 }
 
 button:hover {
+    transform: translateY(-2px);
     opacity: 0.9;
 }
 
@@ -70,6 +70,7 @@ button:hover {
 .stDataFrame {
     background-color: var(--bg-secondary) !important;
     border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .stDataFrame div {
@@ -79,12 +80,15 @@ button:hover {
 /* ===== TABS ===== */
 button[role="tab"] {
     color: #9ca3af !important;
+    transition: all 0.2s;
 }
 
 button[role="tab"][aria-selected="true"] {
     color: white !important;
     border-bottom: 2px solid var(--primary) !important;
+    background: transparent !important;
 }
+
 /* ===== CARD ===== */
 .card {
     background: rgba(30, 41, 59, 0.6);
@@ -92,38 +96,33 @@ button[role="tab"][aria-selected="true"] {
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 20px;
-
     border: 1px solid rgba(255,255,255,0.05);
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
 }
 
-/* hover effect */
 .card:hover {
     box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
-    transition: 0.3s;
 }
+
 .stDownloadButton button {
     background: linear-gradient(135deg, #10b981, #059669) !important;
 }
-/* ===== FORCE FIX SELECTBOX ===== */
 
-/* ô select */
+/* ===== FORCE FIX SELECTBOX ===== */
 div[data-baseweb="select"] * {
     color: white !important;
 }
 
-/* dropdown menu */
 ul[role="listbox"] {
     background-color: #1e293b !important;
 }
 
-/* từng item */
 li[role="option"] {
     background-color: #1e293b !important;
     color: white !important;
 }
 
-/* hover */
 li[role="option"]:hover {
     background-color: #374151 !important;
     color: white !important;
