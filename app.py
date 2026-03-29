@@ -7,6 +7,30 @@ from io import BytesIO
 from src.pdf_parser import extract_pdf_tables
 from src.charts import create_chart
 from src.export_utils import export_buttons
+from src.report_generator import generate_pdf_report
+
+
+# --- HELPER FUNCTION FOR REPORT ---
+def render_report_section(df, unique_id):
+    st.markdown("---")
+    st.markdown("### 📄 Export Official Report")
+    
+    try:
+        report_data = generate_pdf_report(df)
+        
+        # If the report comes back as a string, encode it to bytes
+        if isinstance(report_data, str):
+            report_data = report_data.encode('latin-1')
+            
+        st.download_button(
+            label="📥 Download Official PDF Analysis",
+            data=report_data, 
+            file_name="Grade_Analysis_Report.pdf",
+            mime="application/pdf",
+            key=f"report_btn_{unique_id}" # Using the unique_id passed to the function
+        )
+    except Exception as e:
+        st.error(f"Error generating PDF: {e}")
 
 # ===== CONFIG =====
 st.set_page_config(page_title="DA Dashboard", layout="wide")
@@ -256,6 +280,8 @@ with tab1:
         
         insights = generate_insights(df, col_x=col_x, col_y=col_y)
         render_report(insights)
+        
+    render_report_section(df, "tab1")
 
 
 # ================= TAB 2 =================
@@ -268,6 +294,8 @@ with tab2:
     if col_x and col_y:
         create_chart(f"boxplot {col_x} {col_y}", df)
 
+    render_report_section(df, "tab2")
+    
 # ================= TAB 3 =================
 with tab3:
     st.header("About")
