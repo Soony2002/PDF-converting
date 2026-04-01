@@ -8,6 +8,8 @@ def extract_pdf_tables(uploaded_files):
     header = None
 
     for file in uploaded_files:
+        # Extract filename without .pdf extension
+        file_name = file.name.split('.pdf')[0]
 
         with pdfplumber.open(file) as pdf:
 
@@ -36,9 +38,12 @@ def extract_pdf_tables(uploaded_files):
                     df = df.iloc[:, :9]
 
                     df.columns = [
-                        "STT","MSSV","Name","Class",
+                        "STT","MSSV","Name","Admin_Class",
                         "CC","GK","TL","CK","Final"
                     ]
+                    
+                    # Set the analytical 'Class' to the filename instead of the inner class
+                    df["Class"] = file_name
 
                     tables.append(df)
 

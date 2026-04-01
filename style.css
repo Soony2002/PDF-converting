@@ -1,162 +1,268 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 /* ===== GLOBAL THEME ===== */
 :root {
-    --bg-main: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-accent: #312e81;
-    --text-primary: #ffffff;
-    --text-secondary: #cbd5f5;
-    --primary: #6366f1;
-    --primary-hover: #4f46e5;
+    --bg-main: #0B0F19;
+    --bg-secondary: #111827;
+    --bg-card: rgba(17, 24, 39, 0.7);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --border: rgba(255, 255, 255, 0.08);
 }
 
-/* ===== APP BACKGROUND ===== */
+/* ===== APP BACKGROUND & TYPOGRAPHY ===== */
 .stApp {
-    background: linear-gradient(135deg, var(--bg-main), var(--bg-secondary), var(--bg-accent));
+    background-color: var(--bg-main) !important;
+    background-image: none !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
-/* ===== GLOBAL TEXT ===== */
 * {
-    color: var(--text-secondary) !important;
+    font-family: 'Inter', sans-serif;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4, h5, h6 {
     color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em;
+}
+
+p, span, div {
+    color: var(--text-secondary);
 }
 
 /* ===== LAYOUT ===== */
 .block-container {
     max-width: 1200px;
-    padding: 2rem;
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
 }
 
 /* ===== SIDEBAR ===== */
 section[data-testid="stSidebar"] {
-    background: #020617 !important;
-    border-right: 1px solid #1e293b;
+    background-color: var(--bg-secondary) !important;
+    border-right: 1px solid var(--border);
+}
+
+section[data-testid="stSidebar"] * {
+    color: var(--text-secondary);
 }
 
 /* ===== BUTTON ===== */
-button {
-    background: linear-gradient(135deg, var(--primary), var(--primary-hover)) !important;
-    color: white !important;
-    border-radius: 10px !important;
-    border: none !important;
-    font-weight: 500;
-    padding: 8px 14px;
-    transition: all 0.3s ease;
-}
-
-button:hover {
-    transform: translateY(-2px);
-    opacity: 0.9;
-}
-
-/* ===== SELECTBOX & INPUT ===== */
-.stSelectbox div,
-.stTextInput input {
-    background-color: var(--bg-secondary) !important;
+div.stButton > button, button[data-testid="baseButton-secondary"] {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
     border-radius: 8px !important;
+    border: 1px solid var(--border) !important;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover {
+    border-color: var(--primary) !important;
+    background: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Primary actions */
+.stDownloadButton button, button[kind="primary"] {
+    background: var(--primary) !important;
     color: white !important;
+    border: none !important;
+}
+
+.stDownloadButton button:hover, button[kind="primary"]:hover {
+    background: var(--primary-hover) !important;
+}
+
+/* ===== SELECTBOX, RADIO, INPUT ===== */
+div[data-baseweb="select"] > div {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+    border-radius: 8px !important;
+}
+
+div[data-baseweb="select"] * {
+    color: var(--text-primary) !important;
+}
+
+/* Dropdown menu background */
+ul[role="listbox"] {
+    background-color: var(--bg-secondary) !important;
+    border: 1px solid var(--border);
+}
+
+li[role="option"]:hover {
+    background-color: rgba(255,255,255, 0.05) !important;
 }
 
 /* ===== FILE UPLOADER ===== */
 [data-testid="stFileUploader"] {
     background-color: var(--bg-secondary);
     border-radius: 12px;
-    padding: 10px;
+    border: 1px dashed var(--border);
+    padding: 1rem;
 }
 
 /* ===== TABLE ===== */
 .stDataFrame {
-    background-color: var(--bg-secondary) !important;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.1);
+    background-color: transparent !important;
 }
 
-.stDataFrame div {
-    color: white !important;
+[data-testid="stDataFrameResizable"] {
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 /* ===== TABS ===== */
 button[role="tab"] {
-    color: #9ca3af !important;
-    transition: all 0.2s;
+    background-color: transparent !important;
+    color: var(--text-secondary) !important;
+    font-weight: 500;
+    padding-bottom: 0.5rem;
 }
 
 button[role="tab"][aria-selected="true"] {
-    color: white !important;
-    border-bottom: 2px solid var(--primary) !important;
-    background: transparent !important;
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--primary) !important;
 }
 
-/* ===== CARD ===== */
+/* ===== CARDS & CALLOUTS ===== */
 .card {
-    background: rgba(30, 41, 59, 0.6);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255,255,255,0.05);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
-    box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255,255,255, 0.15);
 }
 
-.stDownloadButton button {
-    background: linear-gradient(135deg, #10b981, #059669) !important;
+.card h3, .card h4 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: var(--text-primary) !important;
 }
 
-/* ===== FORCE FIX SELECTBOX ===== */
-div[data-baseweb="select"] * {
-    color: white !important;
+.card p {
+    margin: 4px 0;
+    color: var(--text-secondary);
 }
 
-ul[role="listbox"] {
-    background-color: #1e293b !important;
+/* metric overrides if needed */
+[data-testid="stMetricValue"] {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+}
+[data-testid="stMetricLabel"] {
+    font-size: 0.9rem !important;
+    color: var(--text-secondary) !important;
 }
 
-li[role="option"] {
-    background-color: #1e293b !important;
-    color: white !important;
-}
-
-li[role="option"]:hover {
-    background-color: #374151 !important;
-    color: white !important;
-}
-
+/* ===== TITLES ===== */
 .main-title {
-    font-size: 42px;
+    font-size: 38px;
     font-weight: 700;
-    background: linear-gradient(90deg, #6366f1, #a855f7);
-    background-clip: text; 
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: fadeInDown 1s ease;
+    color: var(--text-primary) !important;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
 }
 
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-div.stButton > button {
-    border-radius: 12px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
-    border: none;
-    transition: all 0.3s ease;
+.sub-title {
+    font-size: 16px;
+    color: var(--text-secondary) !important;
+    margin-bottom: 2rem;
+    font-weight: 400;
 }
 
-div.stButton > button:hover {
+/* Divider overrides */
+hr {
+    border-bottom: 1px solid var(--border) !important;
+}
+
+/* UI Landing Page Expansions */
+.sidebar-logo {
+    display: block;
+    margin: 0 auto;
+    width: 60%;
+    max-width: 140px;
+    height: auto;
+    border-radius: 50%;
+    background-color: white; /* Just in case it's a transparent logo with dark ink */
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    margin-bottom: 2rem;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-logo:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.6);
+}
+
+.feature-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    height: 100%;
+    margin-top: 1rem;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.feature-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #f8fafc;
+}
+
+.feature-desc {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.system-status {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    justify-content: auto;
+}
+
+.system-status span {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 8px #10b981;
 }
