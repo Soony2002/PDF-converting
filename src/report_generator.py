@@ -99,14 +99,79 @@ def generate_pdf_report(df, lang="EN", metadata=None):
         pdf.cell(50, 10, f"{p_rate:.1f}%", border=1, ln=True)
 
     pdf.ln(15)
-    pdf.set_font("Roboto", "I", 10)
+    pdf.set_font("Roboto", "", 10)
     pdf.cell(0, 5, t("signature_date", lang), ln=True, align="R")
     pdf.set_font("Roboto", "B", 10)
     pdf.cell(0, 5, t("signature_creator", lang), ln=True, align="R")
-    pdf.set_font("Roboto", "I", 9)
+    pdf.set_font("Roboto", "", 9)
     pdf.cell(0, 5, t("signature_sign", lang), ln=True, align="R")
     pdf.ln(20)
 
     # IMPORTANT: Use dest='S' for older fpdf or just output() for fpdf2
     # To be safest, let's return it as a byte string explicitly
+    return pdf.output(dest='S')
+
+def generate_visual_pdf_report(df, lang="EN", metadata=None, insights=None):
+    if insights is None:
+        insights = {}
+    from src.locales import t
+    pdf = FPDF()
+    font_dir = os.path.dirname(__file__)
+    pdf.add_font("Roboto", "", os.path.join(font_dir, "Roboto-Regular.ttf"))
+    pdf.add_font("Roboto", "B", os.path.join(font_dir, "Roboto-Bold.ttf"))
+    
+    pdf.add_page()
+    pdf.set_font("Roboto", "B", 14)
+    tit = "BÁO CÁO PHÂN TÍCH INSIGHTS CHUYÊN SÂU" if lang=="VI" else "ANALYTICAL INSIGHTS REPORT"
+    pdf.cell(0, 10, tit, ln=True, align="C")
+    pdf.ln(5)
+    
+    pdf.set_font("Roboto", "B", 12)
+    pdf.cell(0, 8, "1. Tổng quan Lớp xuất sắc nhất" if lang=="VI" else "1. Top Performing Class", ln=True)
+    pdf.set_font("Roboto", "", 11)
+    t_1 = f"- Dựa trên phân tích phân bố trung bình, lớp {insights.get('top_class', 'N/A')} đang dẫn đầu bộ dữ liệu hiện tại." if lang=="VI" else f"- Class {insights.get('top_class', 'N/A')} is currently leading the academic metrics."
+    pdf.multi_cell(0, 8, t_1)
+    
+    pdf.ln(5)
+    pdf.set_font("Roboto", "B", 12)
+    pdf.cell(0, 8, "2. Mức độ tản mát dữ liệu (Độ đồng đều)" if lang=="VI" else "2. Variance Analytics", ln=True)
+    pdf.set_font("Roboto", "", 11)
+    t_2 = f"- Lớp có điểm số đồng đều nhất (Khoảng cách điểm phần lõi bé nhất) thuộc về {insights.get('least_var', 'N/A')}." if lang=="VI" else f"- Class {insights.get('least_var', 'N/A')} holds the tightest IQR distribution showing consistent performance."
+    pdf.multi_cell(0, 8, t_2)
+    
+    pdf.ln(5)
+    pdf.set_font("Roboto", "B", 12)
+    pdf.cell(0, 8, "3. Nhận định Rủi ro Khóa Học (Simulation)" if lang=="VI" else "3. Exam Simulation Risk", ln=True)
+    pdf.set_font("Roboto", "", 11)
+    t_3 = f"- Kịch bản giả định: {insights.get('pass_drop', 'Chưa có dữ liệu.')}" if lang=="VI" else f"- Generated Scenario Risk: {insights.get('pass_drop', 'N/A')}"
+    # fpdf does not handle long utf8 characters securely without replacement sometimes but standard Roboto supports VN.
+    pdf.multi_cell(0, 8, t_3)
+    
+    # --- CHART VISUALIZATION INJECTION ---
+    import tempfile
+    
+    pdf.ln(10)
+    pdf.set_font("Roboto", "B", 12)
+    pdf.cell(0, 8, "II. Trực quan hóa Biểu Đồ (Charts)" if lang=="VI" else "II. Visual Charts", ln=True)
+    
+    def embed_chart(img_key, title):
+        if img_key in insights:
+            pdf.ln(5)
+            pdf.set_font("Roboto", "B", 10)
+            pdf.cell(0, 8, title, ln=True)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp:
+                tmp.write(insights[img_key])
+                tmp_path = tmp.name
+            pdf.image(tmp_path, w=160)
+            os.unlink(tmp_path)
+
+    embed_chart('img_rank', "[Biểu đồ 1] Xếp hạng lớp theo Điểm Tổng Kết" if lang=="VI" else "[Chart 1] Class Ranking")
+    embed_chart('img_grouped', "[Biểu đồ 2] Phân loại Học Lực theo Lớp" if lang=="VI" else "[Chart 2] Grade Distribution")
+    embed_chart('img_box', "[Biểu đồ 3] Phân tán & Sự Lệch Điểm" if lang=="VI" else "[Chart 3] Score Variance Boxplot")
+    
+    pdf.ln(10)
+    pdf.set_font("Roboto", "", 9)
+    t_4 = "Báo cáo này tập trung vào số liệu phân tích chuyên sâu tự động xuất ra từ Dashboard." if lang=="VI" else "This report isolates textual and visual insights directly from the interactive dashboard."
+    pdf.multi_cell(0, 6, t_4)
+    
     return pdf.output(dest='S')

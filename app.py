@@ -228,14 +228,10 @@ min_score, max_score = min(0.0, min_score), max(10.0, max_score)
 score_range = st.sidebar.slider(t("filter_score", lang), 0.0, 10.0, (0.0, 10.0), 0.1)
 
 unique_grades = sorted(df['Grade'].dropna().unique())
-selected_grades = st.sidebar.multiselect(t("filter_grade", lang), unique_grades, default=[])
+selected_grades = st.sidebar.multiselect(t("filter_grade", lang), unique_grades, default=unique_grades)
 
 unique_classes = sorted(df['Class'].dropna().unique())
-selected_classes = st.sidebar.multiselect(t("filter_class", lang), unique_classes, default=[])
-
-if not selected_grades or not selected_classes:
-    st.info("👈 Vui lòng tick chọn ít nhất 1 Lớp và 1 Xếp loại trên thanh công cụ để xem dữ liệu." if lang=="VI" else "👈 Please select at least 1 Class and 1 Grade from the sidebar.")
-    st.stop()
+selected_classes = st.sidebar.multiselect(t("filter_class", lang), unique_classes, default=unique_classes)
 
 # Apply Filter
 df = df[
@@ -294,78 +290,89 @@ with tab1:
 
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    st.markdown(f"### 1. Xếp hạng lớp theo Điểm Tổng Kết (Trung Bình)" if lang=="VI" else "### 1. Class Ranking by Final Score")
-    with st.expander(t("guide_heading", lang)):
-        st.write(t("guide_class_rank", lang))
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    col_chart1, col_chart2 = st.columns(2)
+    with col_chart1:
+        st.markdown(f"### 1. Xếp hạng lớp theo Điểm Tổng Kết" if lang=="VI" else "### 1. Class Ranking by Final Score")
+        with st.expander(t("guide_heading", lang)):
+            st.write(t("guide_class_rank", lang))
+            
+        class_avg_df = df.groupby('Class')['Final'].mean().reset_index().sort_values(by='Final', ascending=False)
+        top_class = class_avg_df.iloc[0]['Class'] if len(class_avg_df) > 0 else None
+        class_avg_df['Color'] = class_avg_df['Class'].apply(lambda x: '#2563eb' if x == top_class else '#475569') # Professional Corporate Blue vs Slate
         
-    class_avg_df = df.groupby('Class')['Final'].mean().reset_index().sort_values(by='Final', ascending=False)
-    # Highlight top class
-    top_class = class_avg_df.iloc[0]['Class'] if len(class_avg_df) > 0 else None
-    class_avg_df['Color'] = class_avg_df['Class'].apply(lambda x: '#f59e0b' if x == top_class else '#3b82f6')
-    
-    fig_rank = px.bar(class_avg_df, x='Class', y='Final', text_auto='.2f', color='Color', color_discrete_map="identity")
-    fig_rank.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family="Inter", color="#f8fafc"))
-    st.plotly_chart(fig_rank, use_container_width=True)
-    
-    if len(class_avg_df) > 0:
-        st.success(f"💡 **Insight:** Lớp **{top_class}** đang dẫn đầu với điểm trung bình **{class_avg_df.iloc[0]['Final']:.2f}**." if lang=="VI" else f"💡 **Insight:** Class **{top_class}** leads with an average of **{class_avg_df.iloc[0]['Final']:.2f}**.")
-    
-    st.markdown("---")
-    
-    st.markdown(f"### 2. Phân loại Học Lực theo Lớp" if lang=="VI" else "### 2. Grade Classification by Class")
-    with st.expander(t("guide_heading", lang)):
-        st.write(t("guide_class_grade", lang))
+        fig_rank = px.bar(class_avg_df, x='Class', y='Final', text_auto='.2f', color='Color', color_discrete_map="identity")
+        st.plotly_chart(fig_rank, use_container_width=True)
         
-    grade_class_dist = df.groupby(['Class', 'Grade']).size().reset_index(name='Count')
-    fig_grouped = px.bar(
-        grade_class_dist, x="Class", y="Count", color="Grade", barmode="group",
-        color_discrete_sequence=["#3b82f6", "#10b981", "#f59e0b", "#6366f1", "#8b5cf6"]
-    )
-    fig_grouped.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family="Inter", color="#f8fafc"))
-    st.plotly_chart(fig_grouped, use_container_width=True)
+        if len(class_avg_df) > 0:
+            st.success(f"💡 **Insight:** Lớp **{top_class}** đang dẫn đầu với điểm trung bình **{class_avg_df.iloc[0]['Final']:.2f}**." if lang=="VI" else f"💡 **Insight:** Class **{top_class}** leads: **{class_avg_df.iloc[0]['Final']:.2f}**.")
     
-    # Calculate group with highest 'Fail' or 'Excellent'
-    try:
-        excel_class = grade_class_dist[grade_class_dist['Grade'].str.contains('Xuất sắc|Excellent')].sort_values(by='Count', ascending=False).iloc[0]['Class']
-        st.info(f"💡 **Insight:** Lớp **{excel_class}** có số lượng sinh viên Xuất sắc nhiều nhất so với các lớp khác." if lang=="VI" else f"💡 **Insight:** Class **{excel_class}** has the most Excellent students.")
-    except:
-        pass
+    with col_chart2:
+        st.markdown(f"### 2. Phân loại Học Lực theo Lớp" if lang=="VI" else "### 2. Grade Classification by Class")
+        with st.expander(t("guide_heading", lang)):
+            st.write(t("guide_class_grade", lang))
+            
+        grade_class_dist = df.groupby(['Class', 'Grade']).size().reset_index(name='Count')
+        fig_grouped = px.bar(
+            grade_class_dist, x="Class", y="Count", color="Grade", barmode="group",
+            color_discrete_sequence=["#0ea5e9", "#2563eb", "#1e3a8a", "#64748b", "#94a3b8"]
+        )
+        st.plotly_chart(fig_grouped, use_container_width=True)
+        
+        try:
+            excel_class = grade_class_dist[grade_class_dist['Grade'].str.contains('Xuất sắc|Excellent')].sort_values(by='Count', ascending=False).iloc[0]['Class']
+            st.info(f"💡 **Insight:** Lớp **{excel_class}** có số lượng sinh viên đạt Xuất sắc nhiều nhất đo được." if lang=="VI" else f"💡 **Insight:** Class **{excel_class}** has the most Excellent students.")
+        except:
+            st.info("💡 **Insight:** Mức độ phân hóa học lực khá đồng đều." if lang=="VI" else "💡 **Insight:** Students grades are relatively evenly spread.")
 
 # ================= TAB 2 =================
 with tab2:
-    st.markdown("### Phân tích Phân bố & Sự Lệch Điểm" if lang=="VI" else "### Score Variance & Discrepancies")
+    col_t2_1, col_t2_2 = st.columns(2)
     
-    with st.expander(t("guide_heading", lang)):
-        st.write(t("guide_boxplot", lang))
+    with col_t2_1:
+        st.markdown("### Sự Lệch Điểm & Phân Giá" if lang=="VI" else "### Score Variance & Discrepancies")
         
-    fig_box = px.box(df, x="Class", y="Final", color="Class", title="Boxplot Điểm Tổng Kết theo Lớp" if lang=="VI" else "Final Score Boxplot")
-    fig_box.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family="Inter", color="#f8fafc"))
-    st.plotly_chart(fig_box, use_container_width=True)
-    
-    st.markdown("---")
-    
-    st.markdown("### Đối chiếu Điểm Thành Phần" if lang=="VI" else "### Component Score Comparison")
-    with st.expander(t("guide_heading", lang)):
-        st.write(t("guide_scatter", lang))
+        with st.expander(t("guide_heading", lang)):
+            st.write(t("guide_boxplot", lang))
+            
+        fig_box = px.box(df, x="Class", y="Final", color="Class", color_discrete_sequence=px.colors.qualitative.Safe)
+        st.plotly_chart(fig_box, use_container_width=True)
+        try:
+            stats = df.groupby("Class")["Final"].describe()
+            iqrs = stats['75%'] - stats['25%']
+            min_iqr_cls = iqrs.idxmin()
+            st.success(f"💡 **Insight Boxplot:** Lớp **{min_iqr_cls}** có phổ điểm đồng đều nhất (Khoảng cách điểm phần lõi bé nhất)." if lang=="VI" else f"💡 **Insight:** Class {min_iqr_cls} is most visually consistent.")
+        except:
+            pass
+            
+    with col_t2_2:
+        st.markdown("### Đối chiếu Thành Phần vs Tổng Kết" if lang=="VI" else "### Component vs Final Comparison")
+        with st.expander(t("guide_heading", lang)):
+            st.write(t("guide_scatter", lang))
+            
+        comp_cols = ["CC", "GK", "TL", "CK"]
+        available_cols = [c for c in comp_cols if c in df.columns]
         
-    comp_cols = ["CC", "GK", "TL", "CK"]
-    available_cols = [c for c in comp_cols if c in df.columns]
-    
-    if available_cols:
-        col_x = st.selectbox(t("chart_scatter_sel", lang), available_cols, index=len(available_cols)-1)
-        
-        corr_val = df[col_x].corr(df['Final'])
-        fig_scatter = px.scatter(
-            df, x=col_x, y="Final", color="Class", trendline="ols",
-            title=f"{col_x} vs Final (Corr: {corr_val:.2f})" if pd.notna(corr_val) else f"{col_x} vs Final"
-        )
-        fig_scatter.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family="Inter", color="#f8fafc"))
-        st.plotly_chart(fig_scatter, use_container_width=True)
-        
-        if pd.notna(corr_val) and corr_val > 0.8:
-            st.success(f"💡 **Insight:** Mức độ tương quan rất mạnh ({corr_val:.2f}), chứng tỏ sinh viên được điểm {col_x} cao thường có điểm Final rất tốt." if lang=="VI" else "💡 **Insight:** High correlation found!")
-    else:
-        st.warning("Không tìm thấy các cột điểm thành phần." if lang=="VI" else "Component score columns missing.")
+        if available_cols:
+            col_x = st.selectbox(t("chart_scatter_sel", lang), available_cols, index=0)
+            
+            corr_val = df[col_x].corr(df['Final'])
+            fig_scatter = px.scatter(
+                df, x=col_x, y="Final", color="Class", trendline="ols",
+                color_discrete_sequence=px.colors.qualitative.Safe,
+                title=f"{col_x} vs Final (Pearson Corr: {corr_val:.2f})" if pd.notna(corr_val) else f"{col_x} vs Final"
+            )
+            st.plotly_chart(fig_scatter, use_container_width=True)
+            
+            if pd.notna(corr_val) and corr_val > 0.8:
+                st.success(f"💡 **Insight:** Tương quan cực mạnh ({corr_val:.2f}). {col_x} cao gần như đảm bảo sẽ qua môn." if lang=="VI" else "💡 **Insight:** High correlation found!")
+            elif pd.notna(corr_val) and corr_val > 0.5:
+                st.success(f"💡 **Insight:** Tương quan khá ({corr_val:.2f}). Điểm {col_x} tỉ lệ thuận tương đối ổn với Final." if lang=="VI" else "💡 **Insight:** Solid correlation mapped.")
+            else:
+                st.warning(f"💡 **Insight:** Tương quan yếu. Hiện tượng học lệch/thi lệch xảy ra nhiều." if lang=="VI" else "💡 **Insight:** Weak correlation mapped.")
+        else:
+            st.warning("Không tìm thấy các cột điểm thành phần." if lang=="VI" else "Component score columns missing.")
 
     st.markdown("---")
     st.markdown(f"### {t('risk_table_title', lang)}")
@@ -418,12 +425,42 @@ with tab3:
         
     with col_e2:
         st.markdown(f"**Option 2**: {t('btn_export_2', lang)}")
-        # We wrap standard PDF export but can mock a visual metadata drop for chart fallback 
-        import json
-        st.download_button(
-            label="Tải xuống PDF Nhận Xét",
-            data=json.dumps({"Sim_Drop": sim_drop, "Total": len(df), "Avg": df['Final'].mean(), "Insights": "Generated insights..."}),
-            file_name="Visual_Report_Data.json",
-            mime="application/json"
-        )
-        st.caption("*(Xuất biểu đồ ra PDF cần cấu hình `kaleido`. Hệ thống hiện xuất tệp phân tích Insight JSON)*")
+        
+        if st.button("Tạo Báo cáo Bản Đồ (PDF Analytics)"):
+            with st.spinner("Đang xây dựng PDF từ dữ liệu hiển thị..."):
+                try:
+                    from src.report_generator import generate_visual_pdf_report
+                    insights_payload = {}
+                    if 'class_avg_df' in locals() and len(class_avg_df) > 0:
+                        insights_payload['top_class'] = class_avg_df.iloc[0]['Class']
+                    if 'min_iqr_cls' in locals():
+                        insights_payload['least_var'] = min_iqr_cls
+                    if 'new_pass' in locals():
+                        insights_payload['pass_drop'] = f"Kéo thanh trượt {-sim_drop} điểm => Tỉ lệ Pass lùi lại tận {(old_pass - new_pass):.1f}% so với gốc."
+                    
+                    if 'fig_rank' in locals():
+                        insights_payload['img_rank'] = fig_rank.to_image(format="png", width=700, height=350, scale=1.5)
+                    if 'fig_grouped' in locals():
+                        insights_payload['img_grouped'] = fig_grouped.to_image(format="png", width=700, height=350, scale=1.5)
+                    if 'fig_box' in locals():
+                        insights_payload['img_box'] = fig_box.to_image(format="png", width=700, height=350, scale=1.5)
+                        
+                    pdf2_bytes = generate_visual_pdf_report(df, lang, metadata, insights_payload)
+                    
+                    if isinstance(pdf2_bytes, bytearray):
+                        pdf2_bytes = bytes(pdf2_bytes)
+                    elif isinstance(pdf2_bytes, str):
+                        pdf2_bytes = pdf2_bytes.encode('latin-1')
+                        
+                    st.session_state['report_2'] = pdf2_bytes
+                except Exception as e:
+                    st.error(f"Lỗi khối tạo PDF Option 2 {e}")
+                    
+        if 'report_2' in st.session_state:
+            st.download_button(
+                label="📥 Tải xuống PDF Option 2",
+                data=st.session_state['report_2'],
+                file_name="Visual_Insights_Report.pdf",
+                mime="application/pdf"
+            )
+        st.caption("*(Công cụ tạo PDF tích hợp Insights chuyên sâu từ tương tác hiển thị. Bản Export sẽ đính kèm Nhận Xét text vì trình duyệt cloud không hỗ trợ render Plotly-Kaleido trực tiếp)*")

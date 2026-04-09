@@ -152,7 +152,7 @@ TRANSLATIONS = {
     "sim_kpi_pass": {"VI": "Tỷ Lệ Qua Môn MỚI", "EN": "NEW Pass Rate"},
     "btn_export_1": {"VI": "📄 Xuất Report 1 (Dữ liệu Thực + Insight)", "EN": "📄 Export Report 1 (Raw + Insights)"},
     "btn_export_2": {"VI": "📄 Xuất Report 2 (Biểu Đồ + Tổng Hợp Chuyên Sâu)", "EN": "📄 Export Report 2 (Visual Analytics Report)"},
-    "chart_scatter_sel": {"VI": "So sánh Thành Phần với Cuối Kỳ:", "EN": "Compare Component with Final:"}
+    "chart_scatter_sel": {"VI": "So sánh Thành Phần với Điểm Tổng Kết:", "EN": "Compare Component with Final:"}
 }
 
 def t(key, lang="EN"):
