@@ -11,9 +11,9 @@ TRANSLATIONS = {
     "upload_start": {"VI": "Vui lòng tải file PDF lên để bắt đầu", "EN": "Upload PDF to start"},
     "processing_pdf": {"VI": "Đang xử lý PDF...", "EN": "Processing PDF..."},
     "no_table_error": {"VI": "Không tìm thấy bảng trong file PDF", "EN": "No table found in PDF"},
-    "tab1": {"VI": "Phân Tích", "EN": "Analysis"},
-    "tab2": {"VI": "Biểu đồ hộp (Boxplot)", "EN": "Boxplot"},
-    "tab3": {"VI": "Tra cứu cá nhân", "EN": "Individual Lookup"},
+    "tab1": {"VI": "Phân Tích Tổng Quan", "EN": "Overview Analysis"},
+    "tab2": {"VI": "Phân Tích Thành Phần", "EN": "Component Analysis"},
+    "tab3": {"VI": "Báo cáo & Sinh viên Nguy cơ", "EN": "Report & At-Risk Students"},
     "data_clean_title": {"VI": "🧹 Tóm Tắt Dữ Liệu", "EN": "🧹 Data Cleaning Summary"},
     "rows": {"VI": "Số dòng", "EN": "Rows"},
     "cols": {"VI": "Số cột", "EN": "Columns"},
@@ -125,6 +125,34 @@ TRANSLATIONS = {
     "feat_3_desc": {"VI": "Hệ thống tự tính toán mốc phân vị, trung vị và đếm Outliers báo cáo hộ bạn.", "EN": "Auto mathematical generation for median, quartiles and Outliers mapping."},
     "sys_status": {"VI": "Trạng thái hoạt động", "EN": "System Status"},
     "sys_version": {"VI": "Phiên bản", "EN": "Version"},
+    
+    # New Filter & UI additions
+    "filter_title": {"VI": "🎛️ Bộ Lọc Dữ Liệu", "EN": "🎛️ Data Filters"},
+    "filter_grade": {"VI": "Lọc theo xếp loại", "EN": "Filter by Grade"},
+    "filter_class": {"VI": "Lọc theo Lớp", "EN": "Filter by Class"},
+    "filter_score": {"VI": "Lọc theo Điểm Tổng Kết", "EN": "Filter by Final Score"},
+    "risk_table_title": {"VI": "Danh sách Sinh viên Vắng Thi / Điểm Liệt (<= 1.0)", "EN": "Absent / Paralyzed Score Students (<= 1.0)"},
+    "risk_empty": {"VI": "Tuyệt vời! Không có sinh viên nào rơi vào nhóm Vắng thi hoặc Điểm liệt.", "EN": "Great! No students found in the Absent or Paralyzed score group."},
+    "process_vs_final": {"VI": "So sánh Điểm Quá Trình vs Cuối Kỳ", "EN": "Process vs Final Score Comparison"},
+    "grade_dist_class": {"VI": "Phân bố Học Lực Giữa Các Lớp (Stacked Bar)", "EN": "Grade Distribution across Classes (Stacked Bar)"},
+    "signature_date": {"VI": "TP. HCM, ngày .... tháng .... năm 20...", "EN": "Ho Chi Minh City, Date .... Month .... Year 20..."},
+    "signature_creator": {"VI": "Người lập báo cáo", "EN": "Report Preparer"},
+    "signature_sign": {"VI": "(Ký và ghi rõ họ tên)", "EN": "(Sign and print full name)"},
+    
+    # New Guide & Simulation strings
+    "guide_heading": {"VI": "📖 Hướng Dẫn Đọc Biểu Đồ & Nhận Xét Nhanh", "EN": "📖 Chart Guide & Quick Insights"},
+    "guide_class_rank": {"VI": "📘 **Hướng dẫn**: Biểu đồ này xếp hạng Điểm Tổng Kết trung bình của các lớp từ cao đến thấp. Lớp có cột màu nổi bật nhất là lớp đang dẫn đầu.", "EN": "📘 **Guide**: ranks Average Final Scores by class. The highlighted column represents the top performing class."},
+    "guide_class_grade": {"VI": "📘 **Hướng dẫn**: Sinh viên được phân loại học lực theo các nhóm điểm. Biểu đồ này đối chiếu trực tiếp số lượng sinh viên đạt từng mốc học lực giữa các lớp.", "EN": "📘 **Guide**: Students grouped by grades. This grouped bar chart compares the volume of grades across different classes directly."},
+    "guide_boxplot": {"VI": "📘 **Hướng dẫn**: Boxplot thể hiện mức độ tản mát dữ liệu. Độ dài của 'Hộp' minh họa cho 50% sinh viên lõi. Các điểm rời rạc là hiện tượng cá biệt (outliers).", "EN": "📘 **Guide**: Boxplot visualizes data variance. Anomalies (dots) are outliers."},
+    "guide_scatter": {"VI": "📘 **Hướng dẫn**: Trục ngang là điểm thành phần tuỳ chọn. Các điểm hội tụ càng rõ ràng, mức độ liên kết càng mạnh. Phục vụ việc tìm sinh viên học lệch.", "EN": "📘 **Guide**: Custom Component vs Final. Strong convergence shows high correlation. Built to find inconsistent learners."},
+    "sim_title": {"VI": "🎲 Mô Phỏng Kịch Bản Biến Động Cuối Kỳ", "EN": "🎲 Exam Difficulty Simulation"},
+    "sim_desc": {"VI": "Giả định **Bài thi Cuối Kỳ (CK)** trở nên KHÓ HƠN. Kéo thanh trượt để trừ trực tiếp điểm CK của toàn bộ tập dữ liệu & quan sát thay đổi của Tỷ Lệ Đạt.", "EN": "Simulate a HARDER Final Exam (CK), dropping everyone's score. Let's see the impact on pass rates!"},
+    "sim_slider": {"VI": "Hệ số Trừ điểm Cuối Kỳ", "EN": "CK Score Reduction Margin"},
+    "sim_kpi_avg": {"VI": "Trung Bình MỚI", "EN": "NEW Average"},
+    "sim_kpi_pass": {"VI": "Tỷ Lệ Qua Môn MỚI", "EN": "NEW Pass Rate"},
+    "btn_export_1": {"VI": "📄 Xuất Report 1 (Dữ liệu Thực + Insight)", "EN": "📄 Export Report 1 (Raw + Insights)"},
+    "btn_export_2": {"VI": "📄 Xuất Report 2 (Biểu Đồ + Tổng Hợp Chuyên Sâu)", "EN": "📄 Export Report 2 (Visual Analytics Report)"},
+    "chart_scatter_sel": {"VI": "So sánh Thành Phần với Cuối Kỳ:", "EN": "Compare Component with Final:"}
 }
 
 def t(key, lang="EN"):

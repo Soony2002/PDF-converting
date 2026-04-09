@@ -98,6 +98,15 @@ def generate_pdf_report(df, lang="EN", metadata=None):
         p_rate = row.iloc[2] 
         pdf.cell(50, 10, f"{p_rate:.1f}%", border=1, ln=True)
 
+    pdf.ln(15)
+    pdf.set_font("Roboto", "I", 10)
+    pdf.cell(0, 5, t("signature_date", lang), ln=True, align="R")
+    pdf.set_font("Roboto", "B", 10)
+    pdf.cell(0, 5, t("signature_creator", lang), ln=True, align="R")
+    pdf.set_font("Roboto", "I", 9)
+    pdf.cell(0, 5, t("signature_sign", lang), ln=True, align="R")
+    pdf.ln(20)
+
     # IMPORTANT: Use dest='S' for older fpdf or just output() for fpdf2
     # To be safest, let's return it as a byte string explicitly
     return pdf.output(dest='S')
