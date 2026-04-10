@@ -206,43 +206,40 @@ if isinstance(result, tuple):
     df, metadata = result
 else:
     df = result
+
     metadata = {}
 
-def classify_grade(score):
-    if pd.isna(score): return t("grade_fail", lang)
-    if score >= 9: return t("grade_excel", lang)
-    elif score >= 8: return t("grade_good", lang)
-    elif score >= 6.5: return t("grade_fair", lang)
-    elif score >= 5: return t("grade_avg", lang)
-    else: return t("grade_fail", lang)
+# Clean text format (remove newlines from PDF parsing to prevent CSV breakages and bad PDF formating)
+for col in df.select_dtypes(include=["object"]):
+    df[col] = df[col].astype(str).str.replace(r'\n|\r', ' ', regex=True).str.replace('  ', ' ').str.strip()
 
-df["Grade"] = df["Final"].apply(classify_grade)
+COL_CC = "Chuyên cần"
+COL_GK = "Giữa kỳ"
+COL_TL = "Tiểu luận"
+COL_CK = "Cuối kỳ"
+COL_FINAL = "Điểm tổng hợp"
 
-# Build Sidebar Filters
-st.sidebar.markdown(f"<div class='sub-title' style='margin-top: 2rem;'>{t('filter_title', lang)}</div>", unsafe_allow_html=True)
+# Rename columns immediately
+rename_map = {
+    "CC": COL_CC,
+    "GK": COL_GK,
+    "TL": COL_TL,
+    "CK": COL_CK,
+    "Final": COL_FINAL
+}
+df.rename(columns=rename_map, inplace=True)
 
-min_score = float(df['Final'].min(skipna=True)) if not df['Final'].isna().all() else 0.0
-max_score = float(df['Final'].max(skipna=True)) if not df['Final'].isna().all() else 10.0
-min_score, max_score = min(0.0, min_score), max(10.0, max_score)
 
-score_range = st.sidebar.slider(t("filter_score", lang), 0.0, 10.0, (0.0, 10.0), 0.1)
 
-unique_grades = sorted(df['Grade'].dropna().unique())
-selected_grades = st.sidebar.multiselect(t("filter_grade", lang), unique_grades, default=unique_grades)
+def classify_grade(score, lang):
+    if pd.isna(score): return "Fail" if lang == "EN" else "Yếu/Kém"
+    if score >= 9: return "Excellent" if lang == "EN" else "Xuất sắc"
+    elif score >= 8: return "Good" if lang == "EN" else "Giỏi"
+    elif score >= 6.5: return "Fair" if lang == "EN" else "Khá"
+    elif score >= 5: return "Average" if lang == "EN" else "Trung bình"
+    else: return "Fail" if lang == "EN" else "Yếu/Kém"
 
-unique_classes = sorted(df['Class'].dropna().unique())
-selected_classes = st.sidebar.multiselect(t("filter_class", lang), unique_classes, default=unique_classes)
-
-# Apply Filter
-df = df[
-    (df['Final'].isna() | ((df['Final'] >= score_range[0]) & (df['Final'] <= score_range[1]))) & 
-    (df['Grade'].isin(selected_grades)) & 
-    (df['Class'].isin(selected_classes))
-]
-
-if len(df) == 0:
-    st.warning("Không có dữ liệu phù hợp với bộ lọc." if lang == "VI" else "No data matching filters.")
-    st.stop()
+df["Grade"] = df[COL_FINAL].apply(lambda x: classify_grade(x, lang))
 
 # ===== TABS =====
 tab1, tab2, tab3 = st.tabs([
@@ -253,7 +250,6 @@ tab1, tab2, tab3 = st.tabs([
 
 # ================= TAB 1 =================
 with tab1:
-
     # ===== DATA CLEANING SUMMARY =====
     clean_html = f"""
     <div class='card'>
@@ -263,7 +259,6 @@ with tab1:
     <p>- {t("missing", lang)}: {df.isna().sum().sum()}</p>
     </div>
     """
-
     st.markdown(clean_html, unsafe_allow_html=True)
 
     st.subheader(t("data_preview", lang))
@@ -277,113 +272,223 @@ with tab1:
         base_name = datetime.now().strftime("data_%Y%m%d")
         export_buttons(df, base_name)
 
-    st.markdown(f"### {t('sec_kpi', lang)}")
-    avg_score = df["Final"].mean()
-    pass_rate = (df["Final"] >= 5).mean() * 100
-    total = len(df)
-
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-    kpi1.metric(t("metric_avg", lang), f"{avg_score:.2f}")
-    kpi2.metric(t("metric_pass", lang), f"{pass_rate:.1f}%")
-    kpi3.metric(t("metric_total", lang), f"{total}")
-    kpi4.metric(t("metric_excellent", lang), f"{(df['Final'] >= 8).sum()}")
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    col_chart1, col_chart2 = st.columns(2)
-    with col_chart1:
-        st.markdown(f"### 1. Xếp hạng lớp theo Điểm Tổng Kết" if lang=="VI" else "### 1. Class Ranking by Final Score")
-        with st.expander(t("guide_heading", lang)):
-            st.write(t("guide_class_rank", lang))
-            
-        class_avg_df = df.groupby('Class')['Final'].mean().reset_index().sort_values(by='Final', ascending=False)
-        top_class = class_avg_df.iloc[0]['Class'] if len(class_avg_df) > 0 else None
-        class_avg_df['Color'] = class_avg_df['Class'].apply(lambda x: '#2563eb' if x == top_class else '#475569') # Professional Corporate Blue vs Slate
-        
-        fig_rank = px.bar(class_avg_df, x='Class', y='Final', text_auto='.2f', color='Color', color_discrete_map="identity")
-        st.plotly_chart(fig_rank, use_container_width=True)
-        
-        if len(class_avg_df) > 0:
-            st.success(f"💡 **Insight:** Lớp **{top_class}** đang dẫn đầu với điểm trung bình **{class_avg_df.iloc[0]['Final']:.2f}**." if lang=="VI" else f"💡 **Insight:** Class **{top_class}** leads: **{class_avg_df.iloc[0]['Final']:.2f}**.")
-    
-    with col_chart2:
-        st.markdown(f"### 2. Phân loại Học Lực theo Lớp" if lang=="VI" else "### 2. Grade Classification by Class")
-        with st.expander(t("guide_heading", lang)):
-            st.write(t("guide_class_grade", lang))
-            
-        grade_class_dist = df.groupby(['Class', 'Grade']).size().reset_index(name='Count')
-        fig_grouped = px.bar(
-            grade_class_dist, x="Class", y="Count", color="Grade", barmode="group",
-            color_discrete_sequence=["#0ea5e9", "#2563eb", "#1e3a8a", "#64748b", "#94a3b8"]
-        )
-        st.plotly_chart(fig_grouped, use_container_width=True)
-        
-        try:
-            excel_class = grade_class_dist[grade_class_dist['Grade'].str.contains('Xuất sắc|Excellent')].sort_values(by='Count', ascending=False).iloc[0]['Class']
-            st.info(f"💡 **Insight:** Lớp **{excel_class}** có số lượng sinh viên đạt Xuất sắc nhiều nhất đo được." if lang=="VI" else f"💡 **Insight:** Class **{excel_class}** has the most Excellent students.")
-        except:
-            st.info("💡 **Insight:** Mức độ phân hóa học lực khá đồng đều." if lang=="VI" else "💡 **Insight:** Students grades are relatively evenly spread.")
-
 # ================= TAB 2 =================
 with tab2:
-    col_t2_1, col_t2_2 = st.columns(2)
+    st.markdown("### 🎛️ Bộ Lọc Dữ Liệu (Filters)" if lang=="VI" else "### 🎛️ Data Filters")
+    f_col1, f_col2, f_col3 = st.columns(3)
     
-    with col_t2_1:
-        st.markdown("### Sự Lệch Điểm & Phân Giá" if lang=="VI" else "### Score Variance & Discrepancies")
+    # We display short class names in the filter, but map them back to global df
+    short_to_long_class = {str(x).split('_')[-1]: x for x in df['Class'].dropna().unique()}
+    unique_classes_short = sorted(short_to_long_class.keys())
+    
+    unique_grades = sorted(df['Grade'].dropna().unique())
+    min_score = float(df[COL_FINAL].min(skipna=True)) if not df[COL_FINAL].isna().all() else 0.0
+    max_score = float(df[COL_FINAL].max(skipna=True)) if not df[COL_FINAL].isna().all() else 10.0
+    min_score, max_score = min(0.0, min_score), max(10.0, max_score)
+    
+    with f_col1:
+        selected_classes_short = st.multiselect(t("filter_class", lang), unique_classes_short, default=[])
+    with f_col2:
+        selected_grades = st.multiselect(t("filter_grade", lang), unique_grades, default=[])
+    with f_col3:
+        score_range = st.slider(t("filter_score", lang), 0.0, 10.0, (0.0, 10.0), 0.1)
         
-        with st.expander(t("guide_heading", lang)):
-            st.write(t("guide_boxplot", lang))
-            
-        fig_box = px.box(df, x="Class", y="Final", color="Class", color_discrete_sequence=px.colors.qualitative.Safe)
-        st.plotly_chart(fig_box, use_container_width=True)
-        try:
-            stats = df.groupby("Class")["Final"].describe()
-            iqrs = stats['75%'] - stats['25%']
-            min_iqr_cls = iqrs.idxmin()
-            st.success(f"💡 **Insight Boxplot:** Lớp **{min_iqr_cls}** có phổ điểm đồng đều nhất (Khoảng cách điểm phần lõi bé nhất)." if lang=="VI" else f"💡 **Insight:** Class {min_iqr_cls} is most visually consistent.")
-        except:
-            pass
-            
-    with col_t2_2:
-        st.markdown("### Đối chiếu Thành Phần vs Tổng Kết" if lang=="VI" else "### Component vs Final Comparison")
-        with st.expander(t("guide_heading", lang)):
-            st.write(t("guide_scatter", lang))
-            
-        comp_cols = ["CC", "GK", "TL", "CK"]
-        available_cols = [c for c in comp_cols if c in df.columns]
-        
-        if available_cols:
-            col_x = st.selectbox(t("chart_scatter_sel", lang), available_cols, index=0)
-            
-            corr_val = df[col_x].corr(df['Final'])
-            fig_scatter = px.scatter(
-                df, x=col_x, y="Final", color="Class", trendline="ols",
-                color_discrete_sequence=px.colors.qualitative.Safe,
-                title=f"{col_x} vs Final (Pearson Corr: {corr_val:.2f})" if pd.notna(corr_val) else f"{col_x} vs Final"
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-            
-            if pd.notna(corr_val) and corr_val > 0.8:
-                st.success(f"💡 **Insight:** Tương quan cực mạnh ({corr_val:.2f}). {col_x} cao gần như đảm bảo sẽ qua môn." if lang=="VI" else "💡 **Insight:** High correlation found!")
-            elif pd.notna(corr_val) and corr_val > 0.5:
-                st.success(f"💡 **Insight:** Tương quan khá ({corr_val:.2f}). Điểm {col_x} tỉ lệ thuận tương đối ổn với Final." if lang=="VI" else "💡 **Insight:** Solid correlation mapped.")
-            else:
-                st.warning(f"💡 **Insight:** Tương quan yếu. Hiện tượng học lệch/thi lệch xảy ra nhiều." if lang=="VI" else "💡 **Insight:** Weak correlation mapped.")
-        else:
-            st.warning("Không tìm thấy các cột điểm thành phần." if lang=="VI" else "Component score columns missing.")
+    if not selected_classes_short:
+        selected_classes_short = unique_classes_short
+    if not selected_grades:
+        selected_grades = unique_grades
 
-    st.markdown("---")
-    st.markdown(f"### {t('risk_table_title', lang)}")
+    selected_classes_long = [short_to_long_class[s] for s in selected_classes_short]
+
+    # Filter global df
+    df = df[
+        (df[COL_FINAL].isna() | ((df[COL_FINAL] >= score_range[0]) & (df[COL_FINAL] <= score_range[1]))) & 
+        (df['Grade'].isin(selected_grades)) & 
+        (df['Class'].isin(selected_classes_long))
+    ]
     
-    risk_df = df[df['Final'].isna() | (df['Final'] <= 1.0)]
+    # Tab 2 visualization uses short class names
+    df_tab2 = df.copy()
+    if 'Class' in df_tab2.columns:
+        df_tab2['Class'] = df_tab2['Class'].apply(lambda x: str(x).split('_')[-1] if pd.notna(x) else x)
     
-    if len(risk_df) > 0:
-        st.error(f"Phát hiện {len(risk_df)} sinh viên vắng thi hoặc có điểm liệt (<= 1.0).", icon="⚠️")
-        st.dataframe(risk_df[["STT", "MSSV", "Name", "Class", "Final", "Grade"]], use_container_width=True)
+    if len(df_tab2) == 0:
+        st.warning("Không có dữ liệu phù hợp với bộ lọc." if lang == "VI" else "No data matching filters.")
     else:
-        st.success(t("risk_empty", lang), icon="✅")
+        st.markdown(f"### {t('sec_kpi', lang)}")
+        avg_score = df_tab2[COL_FINAL].mean()
+        pass_rate = (df_tab2[COL_FINAL] >= 5).mean() * 100
+        total = len(df_tab2)
+
+        def calc_gpa(score):
+            if score >= 9.5: return 4.0
+            elif score >= 9.0: return 3.7
+            elif score >= 8.5: return 3.4
+            elif score >= 8.0: return 3.2
+            elif score >= 7.5: return 3.0
+            elif score >= 7.0: return 2.8
+            elif score >= 6.5: return 2.6
+            elif score >= 6.0: return 2.4
+            elif score >= 5.5: return 2.2
+            elif score >= 5.0: return 2.0
+            elif score >= 4.5: return 1.8
+            elif score >= 4.0: return 1.6
+            else: return 0
+
+        gpa_avg = df_tab2[COL_FINAL].apply(calc_gpa).mean()
+
+        kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+        kpi1.metric(t("metric_avg", lang), f"{avg_score:.2f}")
+        kpi2.metric("GPA trung bình (hệ 4)" if lang == "VI" else "Avg GPA (4.0)", f"{gpa_avg:.2f}")
+        kpi3.metric(t("metric_pass", lang), f"{pass_rate:.1f}%")
+        kpi4.metric(t("metric_total", lang), f"{total}")
+        kpi5.metric(t("metric_excellent", lang), f"{(df_tab2[COL_FINAL] >= 8).sum()}")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # --- TOP 2 CHARTS ---
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            st.markdown("### Phân phối điểm" if lang=="VI" else "### Score Distribution")
+            with st.expander("Hướng dẫn đọc biểu đồ" if lang=="VI" else "How to read this chart"):
+                st.write("Biểu đồ cột chồng thể hiện phân bố điểm số thành từng phân khúc. Giúp so sánh tỷ trọng khối lượng sinh viên đạt chuẩn ở các lớp." if lang=="VI" else "Stacked bar chart showing grade density explicitly.")
+            df_hist = df_tab2.copy()
+            df_hist['ScoreRange'] = pd.cut(df_hist[COL_FINAL], bins=[-1, 3.99, 4.99, 6.49, 7.99, 10], labels=["<4", "4-5", "5-6.5", "6.5-8", "8-10"])
+            dist_data = df_hist.groupby(["ScoreRange", "Class"]).size().reset_index(name="Count")
+            fig_stack = px.bar(dist_data, x="ScoreRange", y="Count", color="Class", barmode="stack", color_discrete_sequence=px.colors.qualitative.Safe)
+            st.plotly_chart(fig_stack, use_container_width=True)
+
+        with col_c2:
+            st.markdown("### Phân loại Sinh viên" if lang=="VI" else "### Student Classification")
+            with st.expander("Hướng dẫn đọc biểu đồ" if lang=="VI" else "How to read this chart"):
+                st.write("Cụm biểu đồ thể hiện sự chênh lệch quy mô học thuật theo danh hiệu từng lớp, cho phép đối chiếu mức độ Giỏi/Khá/TB." if lang=="VI" else "Grouped bars showing comparative competence across classes.")
+            grade_class_dist = df_tab2.groupby(['Class', 'Grade']).size().reset_index(name='Count')
+            cat_orders = ["Xuất sắc", "Giỏi", "Khá", "Trung bình", "Yếu/Kém"] if lang == "VI" else ["Excellent", "Good", "Fair", "Average", "Fail"]
+            fig_grouped = px.bar(
+                grade_class_dist, x="Class", y="Count", color="Grade", barmode="group",
+                color_discrete_sequence=["#0ea5e9", "#2563eb", "#1e3a8a", "#64748b", "#cbd5e1"],
+                category_orders={"Grade": cat_orders}
+            )
+            st.plotly_chart(fig_grouped, use_container_width=True)
+            
+        # --- BOTTOM 2 CHARTS ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_c3, col_c4 = st.columns(2)
+        with col_c3:
+            st.markdown("### Biểu đồ phân tán (Boxplot)" if lang=="VI" else "### Boxplot")
+            with st.expander("Hướng dẫn đọc biểu đồ" if lang=="VI" else "How to read this chart"):
+                st.write("Thùng (box) chứa 50% lượng sinh viên phổ biến nhất.\n- **Đường ngang giữa Box**: Điểm trung vị (Median).\n- **Hai biên của Box**: Phân vị thứ 75 (Q3) và 25 (Q1).\n- **Đường gạch trên/dưới (Upper/Lower fence)**: Giới hạn điểm phân bố thông thường.\n- **Các dấu chấm lơ lửng**: Các điểm ngoại lai (Outliers) có điểm số quá cao hoặc quá thấp bất thường." if lang=="VI" else "Boxplot demonstrating standard deviation mapping.")
+            fig_box = px.box(df_tab2, x="Class", y=COL_FINAL, color="Class", color_discrete_sequence=px.colors.qualitative.Safe)
+            st.plotly_chart(fig_box, use_container_width=True)
+            
+        with col_c4:
+            st.markdown("### Tương quan điểm (Scatter Plot)" if lang=="VI" else "### Component Score Correlation")
+            with st.expander("Hướng dẫn đọc biểu đồ" if lang=="VI" else "How to read this chart"):
+                st.write("Đánh giá độ tuyến tính: Nếu điểm rải theo đường chéo đứt nét thì hệ số ổn định tốt. Chấm đỏ là những trường hợp có điểm thành phần/cuối kỳ đánh lừa hệ thống. Tự do thay đổi lớp để xem độ phân tán cụ thể ít chồng chéo." if lang=="VI" else "Scatter plot assessing component score relationships vs final outcomes for specific class.")
+            comp_cols = [COL_CC, COL_GK, COL_TL, COL_CK]
+            available_cols = [c for c in comp_cols if c in df_tab2.columns]
+            if available_cols and COL_FINAL in df_tab2.columns:
+                sc_col1, sc_col2 = st.columns(2)
+                with sc_col1:
+                    col_x = st.selectbox(t("chart_scatter_sel", lang), available_cols, index=0, key="scatter_cl_x")
+                with sc_col2:
+                    cls_list = df_tab2['Class'].dropna().unique().tolist()
+                    sc_class = st.selectbox("Chọn lớp:" if lang=="VI" else "Select Class:", cls_list, key="scatter_cl_c")
+                
+                df_scatter = df_tab2[df_tab2['Class'] == sc_class].copy()
+                valid_idx = df_scatter[col_x].notna() & df_scatter[COL_FINAL].notna()
+                trendline_dict = {}
+                if valid_idx.sum() > 5:
+                    import numpy as np
+                    x_val = df_scatter.loc[valid_idx, col_x].astype(float)
+                    y_val = df_scatter.loc[valid_idx, COL_FINAL].astype(float)
+                    try:
+                        poly = np.polyfit(x_val, y_val, 1)
+                        y_pred = poly[0] * x_val + poly[1]
+                        residuals = np.abs(y_val - y_pred)
+                        threshold = np.nanpercentile(residuals, 95) if len(residuals) > 0 else 0
+                        df_scatter['Outlier'] = False
+                        df_scatter.loc[valid_idx, 'Outlier'] = residuals > threshold
+                        
+                        sort_idx = np.argsort(x_val)
+                        trendline_dict = {'x': x_val.iloc[sort_idx], 'y': y_pred.iloc[sort_idx]}
+                    except:
+                        df_scatter['Outlier'] = False
+                else:
+                    df_scatter['Outlier'] = False
+                
+                df_scatter['Type'] = df_scatter['Outlier'].map({True: 'Outlier', False: 'Normal'})
+                fig_scatter = px.scatter(
+                    df_scatter, x=col_x, y=COL_FINAL, color="Type",
+                    color_discrete_map={"Normal": "#3b82f6", "Outlier": "#ef4444"},
+                    hover_data=["MSSV", "Name", "Class"],
+                    opacity=0.8
+                )
+                fig_scatter.update_traces(marker=dict(size=10, line=dict(width=1, color='White')), selector=dict(mode='markers'))
+                if trendline_dict:
+                    import plotly.graph_objects as go
+                    fig_scatter.add_trace(go.Scatter(x=trendline_dict['x'], y=trendline_dict['y'], mode='lines', name='Trendline' if lang == "EN" else 'Đường xu hướng', line=dict(color='orange', width=3, dash='dash')))
+                    
+                st.plotly_chart(fig_scatter, use_container_width=True)
+            else:
+                st.warning("Không tìm thấy cột điểm thành phần." if lang=="VI" else "Component score columns missing.")
+
+        st.markdown("---")
+        st.markdown("### 🏆 Bảng Sinh Viên Thông Minh" if lang=="VI" else "### 🏆 Smart Student Table")
+        
+        opt_all = "1. Tất cả sinh viên" if lang == "VI" else "1. All Students"
+        opt_try = "2. Có sự đột biến trong học tập (GK <= 6 nhưng CK > 8)" if lang == "VI" else "2. Breakthrough (GK <= 6, CK > 8)"
+        opt_cc = "3. Đi học nhưng không hiểu bài (Chuyên cần > 8 nhưng Cuối kỳ < 6)" if lang == "VI" else "3. High attendance, poor final (CC > 8, CK < 6)"
+        opt_prob = "4. Thi là vấn đề (Điểm quá trình CC, GK, TL >= 8 nhưng cuối kỳ < 6)" if lang == "VI" else "4. Exam issues (Process >= 8, CK < 6)"
+        opt_decline = "5. Suy giảm lực học (GK >= 8 nhưng CK <= 6)" if lang == "VI" else "5. Declining performance (GK >= 8, CK <= 6)"
+        opt_fail = "6. Rớt môn (Tổng kết < 4)" if lang == "VI" else "6. Failed (Final < 4)"
+
+        smart_option = st.selectbox("📌 Lọc / Highlight theo tiêu chí:" if lang=="VI" else "📌 Filter Highlight Criteria:", [opt_all, opt_try, opt_cc, opt_prob, opt_decline, opt_fail])
+        
+        columns_to_show = ["STT", "MSSV", "Name", "Class", COL_FINAL, "Grade"]
+        for c in [COL_CC, COL_GK, COL_TL, COL_CK]:
+            if c in df_tab2.columns and c not in columns_to_show:
+                columns_to_show.insert(-2, c)
+                
+        df_display = df_tab2.copy()
+        existing_cols = [c for c in columns_to_show if c in df_display.columns]
+        df_display = df_display[existing_cols]
+        
+        def highlight_smart_table(row):
+            styles = [''] * len(row)
+            try:
+                fin = float(row[COL_FINAL]) if pd.notna(row[COL_FINAL]) else 0.0
+                cc = float(row.get(COL_CC, 0)) if COL_CC in row and pd.notna(row[COL_CC]) else 0.0
+                gk = float(row.get(COL_GK, 0)) if COL_GK in row and pd.notna(row[COL_GK]) else 0.0
+                ck = float(row.get(COL_CK, 0)) if COL_CK in row and pd.notna(row[COL_CK]) else 0.0
+                tl = float(row.get(COL_TL, 0)) if COL_TL in row and pd.notna(row[COL_TL]) else 0.0
+                
+                bg_color = ""
+                
+                if smart_option == opt_try:
+                    if gk <= 6.0 and ck > 8.0: bg_color = "background-color: #d1fae5; color: #065f46; font-weight: bold;"
+                elif smart_option == opt_cc:
+                    if cc > 8.0 and ck < 6.0: bg_color = "background-color: #fef08a; color: #854d0e; font-weight: bold;"
+                elif smart_option == opt_prob:
+                    # Điểm quá trình CC, GK, TL >= 8 (TL optional checks) nhưng cuối kỳ < 6
+                    proc_good = cc >= 8.0 and gk >= 8.0 and ('TL' not in row or tl >= 8.0)
+                    if proc_good and ck < 6.0: bg_color = "background-color: #fed7aa; color: #9a3412; font-weight: bold;"
+                elif smart_option == opt_decline:
+                    if gk >= 8.0 and ck <= 6.0: bg_color = "background-color: #fca5a5; color: #991b1b; font-weight: bold;"
+                elif smart_option == opt_fail:
+                    if fin < 4.0: bg_color = "background-color: #f87171; color: #7f1d1d; font-weight: bold;"
+                
+                if bg_color:
+                    return [bg_color] * len(row)
+            except:
+                pass
+            return styles
+
+        # Float formatting logic to format cleanly
+        format_dict = {col: "{:.1f}" for col in df_display.select_dtypes(include=['float64', 'float32']).columns}
+        
+        styled_df = df_display.style.apply(highlight_smart_table, axis=1).format(format_dict)
+        st.dataframe(styled_df, use_container_width=True)
 
 # ================= TAB 3 =================
 with tab3:
@@ -393,16 +498,16 @@ with tab3:
     # Simulate making CK harder, mapping values down
     sim_drop = st.slider(t("sim_slider", lang), min_value=-5.0, max_value=0.0, value=0.0, step=0.5)
     
-    if sim_drop < 0 and "CK" in df.columns:
+    if sim_drop < 0 and COL_CK in df.columns:
         df_sim = df.copy()
-        df_sim['CK_sim'] = (df_sim['CK'] + sim_drop).clip(0, 10)
+        df_sim['CK_sim'] = (df_sim[COL_CK] + sim_drop).clip(0, 10)
         # CK takes 50% ratio generally in formula, meaning 5 point drop equals 2.5 final drop
-        df_sim['Final_sim'] = (df_sim['Final'] + sim_drop * 0.5).clip(0, 10)
+        df_sim['Final_sim'] = (df_sim[COL_FINAL] + sim_drop * 0.5).clip(0, 10)
         
-        old_pass = (df['Final'] >= 5).mean() * 100
+        old_pass = (df[COL_FINAL] >= 5).mean() * 100
         new_pass = (df_sim['Final_sim'] >= 5).mean() * 100
         
-        old_avg = df['Final'].mean()
+        old_avg = df[COL_FINAL].mean()
         new_avg = df_sim['Final_sim'].mean()
         
         col_s1, col_s2 = st.columns(2)
@@ -410,6 +515,17 @@ with tab3:
         col_s2.metric(t("sim_kpi_pass", lang), f"{new_pass:.1f}%", f"{(new_pass - old_pass):.1f}%")
         
         st.warning(f"💡 **Insight**: Nếu đề thi khó hơn và giảm {-sim_drop} điểm CK, tỷ lệ qua môn sẽ sụt xuống còn {new_pass:.1f}% (giảm tận {(old_pass - new_pass):.1f}%)!" if lang=="VI" else f"💡 **Insight**: Pass rate drops by {(old_pass - new_pass):.1f}%!")
+        
+        # Determine who failed because of this drop
+        newly_failed = df_sim[(df_sim[COL_FINAL] >= 5) & (df_sim['Final_sim'] < 5)]
+        if not newly_failed.empty:
+            st.markdown("#### 🚨 Danh sách sinh viên bị ảnh hưởng (Chuyển từ Đậu -> Rớt)" if lang == "VI" else "#### 🚨 Affected Students (Pass -> Fail)")
+            affected_cols = ["MSSV", "Name", "Class", COL_CK, "CK_sim", COL_FINAL, "Final_sim"]
+            exist_affected = [c for c in affected_cols if c in newly_failed.columns]
+            
+            format_sim = {col: "{:.1f}" for col in newly_failed[exist_affected].select_dtypes(include=['float64', 'float32']).columns}
+            st.dataframe(newly_failed[exist_affected].style.format(format_sim), use_container_width=True)
+            
     elif sim_drop == 0:
         st.info("👈 Kéo thanh trượt về bên trái để bắt đầu mô phỏng." if lang=="VI" else "👈 Slide left to simulate.")
         
@@ -430,20 +546,50 @@ with tab3:
             with st.spinner("Đang xây dựng PDF từ dữ liệu hiển thị..."):
                 try:
                     from src.report_generator import generate_visual_pdf_report
+                    import plotly.graph_objects as go
+                    
                     insights_payload = {}
-                    if 'class_avg_df' in locals() and len(class_avg_df) > 0:
-                        insights_payload['top_class'] = class_avg_df.iloc[0]['Class']
-                    if 'min_iqr_cls' in locals():
-                        insights_payload['least_var'] = min_iqr_cls
+                    
+                    # Calculate insights manually for PDF
+                    target_df = df_tab2 if 'df_tab2' in locals() else df
+                    if COL_FINAL in target_df.columns:
+                        try:
+                            # top class
+                            class_avg = target_df.groupby('Class')[COL_FINAL].mean()
+                            insights_payload['top_class'] = class_avg.idxmax() if not class_avg.empty else "N/A"
+                            # least variance class (tightest IQR)
+                            class_iqr = target_df.groupby('Class')[COL_FINAL].apply(lambda x: x.quantile(0.75) - x.quantile(0.25))
+                            insights_payload['least_var'] = class_iqr.idxmin() if not class_iqr.empty else "N/A"
+                        except:
+                            pass
+                            
                     if 'new_pass' in locals():
                         insights_payload['pass_drop'] = f"Kéo thanh trượt {-sim_drop} điểm => Tỉ lệ Pass lùi lại tận {(old_pass - new_pass):.1f}% so với gốc."
                     
-                    if 'fig_rank' in locals():
-                        insights_payload['img_rank'] = fig_rank.to_image(format="png", width=700, height=350, scale=1.5)
-                    if 'fig_grouped' in locals():
-                        insights_payload['img_grouped'] = fig_grouped.to_image(format="png", width=700, height=350, scale=1.5)
-                    if 'fig_box' in locals():
-                        insights_payload['img_box'] = fig_box.to_image(format="png", width=700, height=350, scale=1.5)
+                    try:
+                        kpi_data = {
+                            'total': len(target_df),
+                            'avg': float(avg_score) if 'avg_score' in locals() else float(target_df[COL_FINAL].mean()),
+                            'pass_rate': float(pass_rate) if 'pass_rate' in locals() else float((target_df[COL_FINAL] >= 5).mean() * 100),
+                            'excellent': int((target_df[COL_FINAL] >= 8).sum()),
+                            'gpa': float(gpa_avg) if 'gpa_avg' in locals() else 0.0
+                        }
+                        insights_payload['kpis'] = kpi_data
+                    except:
+                        pass
+                    
+                    # Clone charts and force white background / black text just for PDF output!
+                    def capture_pdf_chart(fig):
+                        pdf_fig = go.Figure(fig)
+                        pdf_fig.update_layout(template="plotly_white", plot_bgcolor='white', paper_bgcolor='white', font=dict(color='black'))
+                        pdf_fig.update_xaxes(color='black', gridcolor='#e5e5e5')
+                        pdf_fig.update_yaxes(color='black', gridcolor='#e5e5e5')
+                        return pdf_fig.to_image(format="png", width=900, height=450, scale=1.5)
+
+                    if 'fig_stack' in locals(): insights_payload['img_stack'] = capture_pdf_chart(fig_stack)
+                    if 'fig_grouped' in locals(): insights_payload['img_grouped'] = capture_pdf_chart(fig_grouped)
+                    if 'fig_box' in locals(): insights_payload['img_box'] = capture_pdf_chart(fig_box)
+                    if 'fig_scatter' in locals(): insights_payload['img_scatter'] = capture_pdf_chart(fig_scatter)
                         
                     pdf2_bytes = generate_visual_pdf_report(df, lang, metadata, insights_payload)
                     

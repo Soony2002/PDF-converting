@@ -1,6 +1,6 @@
 from fpdf import FPDF
 import datetime
-
+import pandas as pd
 import os
 
 def generate_pdf_report(df, lang="EN", metadata=None):
@@ -65,46 +65,98 @@ def generate_pdf_report(df, lang="EN", metadata=None):
 
     pdf.ln(10)
 
-    # ================= 2. INSIGHT PHÂN TÍCH =================
+    # ================= 2. THỐNG KÊ & ĐÁNH GIÁ =================
     pdf.set_font("Roboto", "B", 12)
-    pdf.cell(0, 10, "1. Insight Phân Tích Bảng Điểm", ln=True)
+    pdf.cell(0, 8, "I. THỐNG KÊ & ĐÁNH GIÁ", ln=True)
     pdf.set_font("Roboto", "", 11)
 
-    
-    avg_score = df["Final"].mean()
-    pass_rate = (df["Final"] >= 5).mean() * 100
+    col_final = "Điểm tổng hợp" if "Điểm tổng hợp" in df.columns else "Final"
+    avg_score = df[col_final].mean()
+    pass_rate = (df[col_final] >= 5).mean() * 100
     total = len(df)
     
-    summary_text = t("pdf_summary_text", lang).format(total=total, classes=df['Class'].nunique(), avg=avg_score, pass_rate=pass_rate)
-    pdf.multi_cell(0, 8, summary_text)
-    pdf.ln(5)
+    pdf.cell(0, 6, f"- Tổng số sinh viên: {total}", ln=True)
+    pdf.cell(0, 6, f"- Điểm trung bình chung (Hệ 10): {avg_score:.2f}", ln=True)
+    
+    grades_count = df['Grade'].value_counts()
+    
+    def print_grade_stat(label, match_label):
+        count = grades_count.get(match_label, 0)
+        pct = (count / total) * 100 if total > 0 else 0
+        pdf.cell(0, 6, f"+ {label}: {count} sinh viên ({pct:.1f}%)", ln=True)
+        
+    print_grade_stat("Xuất sắc", "Xuất sắc" if lang == "VI" else "Excellent")
+    print_grade_stat("Giỏi", "Giỏi" if lang == "VI" else "Good")
+    print_grade_stat("Khá", "Khá" if lang == "VI" else "Fair")
+    print_grade_stat("Trung bình", "Trung bình" if lang == "VI" else "Average")
+    print_grade_stat("Yếu", "Yếu/Kém" if lang == "VI" else "Fail")
+    
+    pdf.ln(4)
+    pdf.set_font("Roboto", "B", 11)
+    pdf.cell(0, 6, "Nhận xét chuyên môn:", ln=True)
+    pdf.set_font("Roboto", "", 11)
+    mode_grade = grades_count.idxmax() if not grades_count.empty else "N/A"
+    
+    # Generate realistic insight
+    if pass_rate >= 95:
+        q_text = "RẤT TỐT"
+        analysis = f"Đa số sinh viên có nền tảng vững vàng, đặc biệt dải điểm phân bố tập trung nhiều nhất ở ngưỡng '{mode_grade}'. Tỷ lệ đạt tuyệt đối cho thấy đề thi bao quát tốt và phương pháp đào tạo hiện tại đang phát huy tối đa hiệu quả. Đề xuất: Tiếp tục duy trì giáo trình và cách tinh giản kiến thức này."
+    elif pass_rate >= 80:
+        q_text = "KHÁ/TỐT"
+        analysis = f"Mức độ tiếp thu bài của sinh viên khá đồng đều, phần lớn sinh viên nằm ở mức '{mode_grade}'. Dù vậy, vẫn có nhóm nhỏ rải rác dưới trung bình. Đề xuất: Khuyến khích các lớp ôn tập dạng nhóm để kéo phổ điểm của nhóm sinh viên yếu lên mức an toàn."
+    elif pass_rate >= 60:
+        q_text = "TRUNG BÌNH"
+        analysis = f"Chất lượng đầu ra có sự phân hóa rất mạnh. Nhóm sinh viên đạt mức '{mode_grade}' chiếm tỷ trọng cao nhưng đi kèm một số lượng không nhỏ học viên ở mức dưới trung bình. Đề xuất: Giảng viên cần rà soát lại khối kiến thức cốt lõi (Core concepts) nhằm bổ sung thêm bài tập ứng dụng dễ hiểu hơn."
+    else:
+        q_text = "ĐÁNG BÁO ĐỘNG"
+        analysis = f"Tồn tại rủi ro cực kỳ lớn do tỷ lệ trượt môn cao. Phần lớn sinh viên (chủ yếu là {mode_grade}) chưa vượt qua được yêu cầu đánh giá năng lực cơ bản. Kiến nghị: Tổ chức báo cáo phân tích rủi ro hệ thống với bộ môn và xem xét lại cấu trúc đề kiểm tra/đề cương môn học ngay lập tức để tìm nguyên nhân."
 
-    # ================= 3. BẢNG ĐIỂM (TỔNG HỢP) =================
+    comment = f"Đánh giá chung: {q_text} ({pass_rate:.1f}% Đạt).\nNhận xét chi tiết: {analysis}"
+    pdf.multi_cell(0, 6, comment)
+    
+    pdf.ln(8)
+
+    # ================= 3. DANH SÁCH ĐIỂM CHI TIẾT =================
     pdf.set_font("Roboto", "B", 12)
-    pdf.cell(0, 10, "2. Bảng Thống Kê / Điểm", ln=True)
+    pdf.cell(0, 8, "II. DANH SÁCH ĐIỂM CHI TIẾT", ln=True)
     
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Roboto", "B", 10)
-    pdf.cell(80, 10, "Lớp Học Phần", border=1, fill=True)
-    pdf.cell(50, 10, "Điểm TB Chung", border=1, fill=True)
-    pdf.cell(50, 10, "Tỷ lệ đạt (≥5)", border=1, fill=True, ln=True)
+    
+    pdf.cell(12, 8, "STT", border=1, fill=True, align="C")
+    pdf.cell(30, 8, "MSSV", border=1, fill=True, align="C")
+    pdf.cell(60, 8, "Họ và Tên", border=1, fill=True, align="C")
+    pdf.cell(30, 8, "Lớp", border=1, fill=True, align="C")
+    pdf.cell(25, 8, "Điểm TK", border=1, fill=True, align="C")
+    pdf.cell(33, 8, "Xếp loại", border=1, fill=True, align="C", ln=True)
     
     pdf.set_font("Roboto", "", 10)
-    summary = df.groupby("Class")["Final"].agg(['mean', lambda x: (x >= 5).mean() * 100]).reset_index()
     
-    for _, row in summary.iterrows():
-        pdf.cell(80, 10, str(row['Class'])[:35], border=1)
-        pdf.cell(50, 10, f"{row['mean']:.2f} / 10.0", border=1)
-        p_rate = row.iloc[2] 
-        pdf.cell(50, 10, f"{p_rate:.1f}%", border=1, ln=True)
+    for idx, (orig_index, row) in enumerate(df.iterrows(), start=1):
+        if pdf.get_y() > 270:
+            pdf.add_page()
+            
+        stt = str(idx)
+        mssv = str(row.get('MSSV', ''))
+        name = str(row.get('Name', ''))[:30]
+        cls = str(row.get('Class', '')).split('_')[-1]
+        final = f"{float(row.get(col_final, 0)):.1f}" if pd.notna(row.get(col_final)) else ""
+        grade = str(row.get('Grade', ''))
+        
+        pdf.cell(12, 8, stt, border=1, align="C")
+        pdf.cell(30, 8, mssv, border=1, align="C")
+        pdf.cell(60, 8, name, border=1)
+        pdf.cell(30, 8, cls, border=1, align="C")
+        pdf.cell(25, 8, final, border=1, align="C")
+        pdf.cell(33, 8, grade, border=1, align="C", ln=True)
 
-    pdf.ln(15)
+    pdf.ln(10)
     pdf.set_font("Roboto", "", 10)
     pdf.cell(0, 5, t("signature_date", lang), ln=True, align="R")
     pdf.set_font("Roboto", "B", 10)
-    pdf.cell(0, 5, t("signature_creator", lang), ln=True, align="R")
+    pdf.cell(0, 5, "NGƯỜI LẬP BẢNG", ln=True, align="R")
     pdf.set_font("Roboto", "", 9)
-    pdf.cell(0, 5, t("signature_sign", lang), ln=True, align="R")
+    pdf.cell(0, 5, "(Ký và ghi rõ họ tên)", ln=True, align="R")
     pdf.ln(20)
 
     # IMPORTANT: Use dest='S' for older fpdf or just output() for fpdf2
@@ -116,62 +168,88 @@ def generate_visual_pdf_report(df, lang="EN", metadata=None, insights=None):
         insights = {}
     from src.locales import t
     pdf = FPDF()
+    pdf.set_margins(10, 10, 10)
     font_dir = os.path.dirname(__file__)
     pdf.add_font("Roboto", "", os.path.join(font_dir, "Roboto-Regular.ttf"))
     pdf.add_font("Roboto", "B", os.path.join(font_dir, "Roboto-Bold.ttf"))
     
     pdf.add_page()
+    w_page = 190 # 210 - 20
+    
     pdf.set_font("Roboto", "B", 14)
     tit = "BÁO CÁO PHÂN TÍCH INSIGHTS CHUYÊN SÂU" if lang=="VI" else "ANALYTICAL INSIGHTS REPORT"
-    pdf.cell(0, 10, tit, ln=True, align="C")
+    pdf.cell(w_page, 10, tit, ln=1, align="C")
     pdf.ln(5)
     
+    # --- KPI SECTION ---
+    if 'kpis' in insights:
+        kpis = insights['kpis']
+        pdf.set_font("Roboto", "B", 12)
+        pdf.cell(w_page, 8, "I. TỔNG QUAN KPIs (Từ Dashboard)" if lang=="VI" else "I. KPIs Overview", ln=1)
+        pdf.set_font("Roboto", "", 11)
+        
+        pdf.set_fill_color(245, 245, 245)
+        
+        # Total width 190 / 5 = 38
+        c_w = 38
+        pdf.cell(c_w, 10, "Tổng số sinh viên", border=1, fill=True, align="C")
+        pdf.cell(c_w, 10, "Điểm TB Chung", border=1, fill=True, align="C")
+        pdf.cell(c_w, 10, "Trung bình GPA", border=1, fill=True, align="C")
+        pdf.cell(c_w, 10, "Tỷ lệ Đạt (>=5)", border=1, fill=True, align="C")
+        pdf.cell(c_w, 10, "Xuất sắc (>=8)", border=1, fill=True, align="C", ln=1)
+        
+        pdf.set_font("Roboto", "B", 11)
+        pdf.cell(c_w, 10, str(kpis.get('total', '')), border=1, align="C")
+        pdf.cell(c_w, 10, f"{kpis.get('avg', 0):.2f}", border=1, align="C")
+        pdf.cell(c_w, 10, f"{kpis.get('gpa', 0):.2f}", border=1, align="C")
+        pdf.cell(c_w, 10, f"{kpis.get('pass_rate', 0):.1f}%", border=1, align="C")
+        pdf.cell(c_w, 10, str(kpis.get('excellent', '')), border=1, align="C", ln=1)
+        pdf.ln(6)
+
+    # --- SIMULATION SECTION ---
     pdf.set_font("Roboto", "B", 12)
-    pdf.cell(0, 8, "1. Tổng quan Lớp xuất sắc nhất" if lang=="VI" else "1. Top Performing Class", ln=True)
+    pdf.cell(w_page, 8, "II. NHẬN ĐỊNH RỦI RO & INSIGHTS" if lang=="VI" else "II. INSIGHTS & RISK", ln=1)
     pdf.set_font("Roboto", "", 11)
-    t_1 = f"- Dựa trên phân tích phân bố trung bình, lớp {insights.get('top_class', 'N/A')} đang dẫn đầu bộ dữ liệu hiện tại." if lang=="VI" else f"- Class {insights.get('top_class', 'N/A')} is currently leading the academic metrics."
-    pdf.multi_cell(0, 8, t_1)
     
-    pdf.ln(5)
-    pdf.set_font("Roboto", "B", 12)
-    pdf.cell(0, 8, "2. Mức độ tản mát dữ liệu (Độ đồng đều)" if lang=="VI" else "2. Variance Analytics", ln=True)
-    pdf.set_font("Roboto", "", 11)
-    t_2 = f"- Lớp có điểm số đồng đều nhất (Khoảng cách điểm phần lõi bé nhất) thuộc về {insights.get('least_var', 'N/A')}." if lang=="VI" else f"- Class {insights.get('least_var', 'N/A')} holds the tightest IQR distribution showing consistent performance."
-    pdf.multi_cell(0, 8, t_2)
+    t_1 = f"- Lớp dẫn đầu (Theo điểm TB): {insights.get('top_class', 'N/A')}." if lang=="VI" else f"- Top Class (By Average Score): {insights.get('top_class', 'N/A')}."
+    pdf.multi_cell(w_page, 8, t_1)
     
-    pdf.ln(5)
-    pdf.set_font("Roboto", "B", 12)
-    pdf.cell(0, 8, "3. Nhận định Rủi ro Khóa Học (Simulation)" if lang=="VI" else "3. Exam Simulation Risk", ln=True)
-    pdf.set_font("Roboto", "", 11)
-    t_3 = f"- Kịch bản giả định: {insights.get('pass_drop', 'Chưa có dữ liệu.')}" if lang=="VI" else f"- Generated Scenario Risk: {insights.get('pass_drop', 'N/A')}"
-    # fpdf does not handle long utf8 characters securely without replacement sometimes but standard Roboto supports VN.
-    pdf.multi_cell(0, 8, t_3)
+    t_2 = f"- Lớp có điểm số đồng đều nhất (Ít phân tán nhất): {insights.get('least_var', 'N/A')}." if lang=="VI" else f"- Class with lowest variance: {insights.get('least_var', 'N/A')}."
+    pdf.multi_cell(w_page, 8, t_2)
+    
+    t_3 = f"- Kịch bản rủi ro (Mô phỏng): {insights.get('pass_drop', 'Chưa có phân tích mô phỏng.')}" if lang=="VI" else f"- Simulated Scenario Risk: {insights.get('pass_drop', 'N/A')}"
+    pdf.multi_cell(w_page, 8, t_3)
     
     # --- CHART VISUALIZATION INJECTION ---
     import tempfile
     
     pdf.ln(10)
     pdf.set_font("Roboto", "B", 12)
-    pdf.cell(0, 8, "II. Trực quan hóa Biểu Đồ (Charts)" if lang=="VI" else "II. Visual Charts", ln=True)
+    pdf.cell(w_page, 8, "III. TRỰC QUAN HÓA BẢN ĐỒ DỮ LIỆU" if lang=="VI" else "III. DATA VISUALIZATIONS", ln=1)
     
     def embed_chart(img_key, title):
         if img_key in insights:
-            pdf.ln(5)
+            if pdf.get_y() > 220:
+                pdf.add_page()
+            else:
+                pdf.ln(5)
             pdf.set_font("Roboto", "B", 10)
-            pdf.cell(0, 8, title, ln=True)
+            pdf.multi_cell(w_page, 8, title)
             with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp:
                 tmp.write(insights[img_key])
                 tmp_path = tmp.name
-            pdf.image(tmp_path, w=160)
+            # Slightly scale the image down so 2 can easily fit on a page
+            pdf.image(tmp_path, w=150)
             os.unlink(tmp_path)
 
-    embed_chart('img_rank', "[Biểu đồ 1] Xếp hạng lớp theo Điểm Tổng Kết" if lang=="VI" else "[Chart 1] Class Ranking")
-    embed_chart('img_grouped', "[Biểu đồ 2] Phân loại Học Lực theo Lớp" if lang=="VI" else "[Chart 2] Grade Distribution")
-    embed_chart('img_box', "[Biểu đồ 3] Phân tán & Sự Lệch Điểm" if lang=="VI" else "[Chart 3] Score Variance Boxplot")
+    embed_chart('img_stack', "[Biểu đồ 1] Phân phối Tỷ trọng khoảng điểm" if lang=="VI" else "[Chart 1] Score Distribution")
+    embed_chart('img_grouped', "[Biểu đồ 2] Phân loại Học lực sinh viên" if lang=="VI" else "[Chart 2] Student Grade Classification")
+    embed_chart('img_box', "[Biểu đồ 3] Boxplot Phân tán & Lệch chuẩn" if lang=="VI" else "[Chart 3] Variance & Range Boxplot")
+    embed_chart('img_scatter', "[Biểu đồ 4] Scatter - Correlation Điểm Thành Phần" if lang=="VI" else "[Chart 4] Component Correlation Scatter")
     
     pdf.ln(10)
     pdf.set_font("Roboto", "", 9)
-    t_4 = "Báo cáo này tập trung vào số liệu phân tích chuyên sâu tự động xuất ra từ Dashboard." if lang=="VI" else "This report isolates textual and visual insights directly from the interactive dashboard."
-    pdf.multi_cell(0, 6, t_4)
+    t_4 = "Báo cáo tự động xuất tuyến tính toàn bộ các mảng biểu diễn không gian từ tương tác trên Dashboard." if lang=="VI" else "This is an internal comprehensive auto-generated visual report."
+    pdf.multi_cell(w_page, 6, t_4)
     
     return pdf.output(dest='S')
