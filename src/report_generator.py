@@ -163,69 +163,6 @@ def generate_pdf_report(df, lang="EN", metadata=None):
     # To be safest, let's return it as a byte string explicitly
     return pdf.output(dest='S')
 
-def generate_visual_pdf_report(df, lang="EN", metadata=None, insights=None):
-    if insights is None:
-        insights = {}
-    from src.locales import t
-    pdf = FPDF()
-    pdf.set_margins(10, 10, 10)
-    font_dir = os.path.dirname(__file__)
-    pdf.add_font("Roboto", "", os.path.join(font_dir, "Roboto-Regular.ttf"))
-    pdf.add_font("Roboto", "B", os.path.join(font_dir, "Roboto-Bold.ttf"))
-    
-    pdf.add_page()
-    w_page = 190 # 210 - 20
-    
-    pdf.set_font("Roboto", "B", 14)
-    tit = "BÁO CÁO PHÂN TÍCH INSIGHTS CHUYÊN SÂU" if lang=="VI" else "ANALYTICAL INSIGHTS REPORT"
-    pdf.cell(w_page, 10, tit, ln=1, align="C")
-    pdf.ln(5)
-    
-    # --- KPI SECTION ---
-    if 'kpis' in insights:
-        kpis = insights['kpis']
-        pdf.set_font("Roboto", "B", 12)
-        pdf.cell(w_page, 8, "I. TỔNG QUAN KPIs (Từ Dashboard)" if lang=="VI" else "I. KPIs Overview", ln=1)
-        pdf.set_font("Roboto", "", 11)
-        
-        pdf.set_fill_color(245, 245, 245)
-        
-        # Total width 190 / 5 = 38
-        c_w = 38
-        pdf.cell(c_w, 10, "Tổng số sinh viên", border=1, fill=True, align="C")
-        pdf.cell(c_w, 10, "Điểm TB Chung", border=1, fill=True, align="C")
-        pdf.cell(c_w, 10, "Trung bình GPA", border=1, fill=True, align="C")
-        pdf.cell(c_w, 10, "Tỷ lệ Đạt (>=5)", border=1, fill=True, align="C")
-        pdf.cell(c_w, 10, "Xuất sắc (>=8)", border=1, fill=True, align="C", ln=1)
-        
-        pdf.set_font("Roboto", "B", 11)
-        pdf.cell(c_w, 10, str(kpis.get('total', '')), border=1, align="C")
-        pdf.cell(c_w, 10, f"{kpis.get('avg', 0):.2f}", border=1, align="C")
-        pdf.cell(c_w, 10, f"{kpis.get('gpa', 0):.2f}", border=1, align="C")
-        pdf.cell(c_w, 10, f"{kpis.get('pass_rate', 0):.1f}%", border=1, align="C")
-        pdf.cell(c_w, 10, str(kpis.get('excellent', '')), border=1, align="C", ln=1)
-        pdf.ln(6)
-
-    # --- SIMULATION SECTION ---
-    pdf.set_font("Roboto", "B", 12)
-    pdf.cell(w_page, 8, "II. NHẬN ĐỊNH RỦI RO & INSIGHTS" if lang=="VI" else "II. INSIGHTS & RISK", ln=1)
-    pdf.set_font("Roboto", "", 11)
-    
-    t_1 = f"- Lớp dẫn đầu (Theo điểm TB): {insights.get('top_class', 'N/A')}." if lang=="VI" else f"- Top Class (By Average Score): {insights.get('top_class', 'N/A')}."
-    pdf.multi_cell(w_page, 8, t_1)
-    
-    t_2 = f"- Lớp có điểm số đồng đều nhất (Ít phân tán nhất): {insights.get('least_var', 'N/A')}." if lang=="VI" else f"- Class with lowest variance: {insights.get('least_var', 'N/A')}."
-    pdf.multi_cell(w_page, 8, t_2)
-    
-    t_3 = f"- Kịch bản rủi ro (Mô phỏng): {insights.get('pass_drop', 'Chưa có phân tích mô phỏng.')}" if lang=="VI" else f"- Simulated Scenario Risk: {insights.get('pass_drop', 'N/A')}"
-    pdf.multi_cell(w_page, 8, t_3)
-    
-    # --- CHART VISUALIZATION INJECTION ---
-    import tempfile
-    
-    pdf.ln(10)
-    pdf.set_font("Roboto", "B", 12)
-    pdf.cell(w_page, 8, "III. TRỰC QUAN HÓA BẢN ĐỒ DỮ LIỆU" if lang=="VI" else "III. DATA VISUALIZATIONS", ln=1)
     
     def embed_chart(img_key, title):
         if img_key in insights:

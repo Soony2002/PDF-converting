@@ -4,4 +4,4 @@ plotly
 pdfplumber
 openpyxl
 statsmodels
-fpdf2kaleido
+fpdf2

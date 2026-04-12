@@ -1,5 +1,6 @@
 TRANSLATIONS = {
-    "page_title": {"VI": "Dashboard Phân Tích Điểm", "EN": "DA Dashboard"},
+    "page_title": {"VI": "Dashboard Phân Tích Điểm", "EN": "Grade Analysis Dashboard"},
+    "page_subtitle": {"VI": "<p style='color: #64748b; font-size: 1.1rem; margin-bottom: 1rem;'>Công cụ phân tích dữ liệu điểm số từ PDF với biểu đồ tương tác và báo cáo chuyên nghiệp.</p>", "EN": "<p style='color: #64748b; font-size: 1.1rem; margin-bottom: 1rem;'>Interactive grade data analysis from PDF with professional charts and reports.</p>"},
     "export_title": {"VI": "📄 Xuất báo cáo chính thức", "EN": "📄 Export Official Report"},
     "download_pdf_btn": {"VI": "📥 Tải xuống Báo cáo PDF", "EN": "📥 Download Official PDF Analysis"},
     "error_gen_pdf": {"VI": "Lỗi khi tạo PDF:", "EN": "Error generating PDF:"},
@@ -44,6 +45,9 @@ TRANSLATIONS = {
     "risk_title": {"VI": "sinh viên thuộc nhóm nguy cơ", "EN": "students at risk"},
     "axis_x": {"VI": "Trục X", "EN": "X Axis"},
     "axis_y": {"VI": "Trục Y", "EN": "Y Axis"},
+    "label_score_range": {"VI": "Khoảng điểm", "EN": "Score Range"},
+    "label_count": {"VI": "Số lượng", "EN": "Count"},
+    "label_type": {"VI": "Loại", "EN": "Type"},
     "report_title": {"VI": "📄 Báo Cáo Phân Tích (Insights)", "EN": "📄 Data Insights"},
     
     # Insights
@@ -125,6 +129,13 @@ TRANSLATIONS = {
     "feat_3_desc": {"VI": "Hệ thống tự tính toán mốc phân vị, trung vị và đếm Outliers báo cáo hộ bạn.", "EN": "Auto mathematical generation for median, quartiles and Outliers mapping."},
     "sys_status": {"VI": "Trạng thái hoạt động", "EN": "System Status"},
     "sys_version": {"VI": "Phiên bản", "EN": "Version"},
+    "built_by": {"VI": "Phát triển bởi","EN": "Built by"},
+    "project": {"VI": "Dự án","EN": "Project"},
+    "clear_data": {"VI": "Xóa dữ liệu", "EN": "Clear Data"},
+    "upload_prompt": {"VI": "👇 Vui lòng tải file PDF lên để bắt đầu", "EN": "👇 Upload PDF to start"},
+    "pdf_export_title": {"VI": "🖨️ Xuất báo cáo PDF", "EN": "🖨️ PDF Export"},
+    "pdf_export_desc": {"VI": "Chọn định dạng xuất báo cáo chính thức.", "EN": "Choose a report export option."},
+    "option_1": {"VI": "Lựa chọn", "EN": "Option"},
     
     # New Filter & UI additions
     "filter_title": {"VI": "🎛️ Bộ Lọc Dữ Liệu", "EN": "🎛️ Data Filters"},
@@ -150,8 +161,7 @@ TRANSLATIONS = {
     "sim_slider": {"VI": "Hệ số Trừ điểm Cuối Kỳ", "EN": "CK Score Reduction Margin"},
     "sim_kpi_avg": {"VI": "Trung Bình MỚI", "EN": "NEW Average"},
     "sim_kpi_pass": {"VI": "Tỷ Lệ Qua Môn MỚI", "EN": "NEW Pass Rate"},
-    "btn_export_1": {"VI": "📄 Xuất Report 1 (Dữ liệu Thực + Insight)", "EN": "📄 Export Report 1 (Raw + Insights)"},
-    "btn_export_2": {"VI": "📄 Xuất Report 2 (Biểu Đồ + Tổng Hợp Chuyên Sâu)", "EN": "📄 Export Report 2 (Visual Analytics Report)"},
+    "btn_export_1": {"VI": "📄 Xuất Report (Dữ liệu Thực + Insight)", "EN": "📄 Export Report (Raw + Insights)"},
     "chart_scatter_sel": {"VI": "So sánh Thành Phần với Điểm Tổng Kết:", "EN": "Compare Component with Final:"}
 }
 

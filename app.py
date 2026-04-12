@@ -47,7 +47,7 @@ if "lang" not in st.session_state:
 # ===== SIDEBAR (Define lang first) =====
 st.sidebar.markdown("<img src='https://hub.edu.vn/static/_admin/images/logologin.png' class='sidebar-logo' />", unsafe_allow_html=True)
 
-lang_choice = st.sidebar.selectbox("Language / Ngôn ngữ", ["English", "Tiếng Việt"], index=1 if st.session_state.lang == "VI" else 0)
+lang_choice = st.sidebar.selectbox(t("lang_select", st.session_state.lang), ["English", "Tiếng Việt"], index=1 if st.session_state.lang == "VI" else 0)
 lang = "VI" if lang_choice == "Tiếng Việt" else "EN"
 st.session_state.lang = lang
 
@@ -60,69 +60,44 @@ st.sidebar.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# Footer
+# Spacer (đẩy xuống đáy)
+st.sidebar.markdown("<div style='flex:1'></div>", unsafe_allow_html=True)
+
+# Divider
+st.sidebar.markdown("---")
+
+st.sidebar.markdown(
+f"""
+<div style="text-align:center">
+
+👨‍💻 <b>{t("built_by", lang)}</b><br>
+<a href="https://github.com/SonnyDuck" target="_blank" style="text-decoration:none; color:white;">
+SoonyDuck 🦆
+</a>
+
+<img src="https://unpkg.com/simple-icons@v9/icons/github.svg" alt="GitHub"
+     style="width:120px;">
+<br><br>
+
+<a href="https://github.com/SonnyDuck" target="_blank">
+🔗 GitHub
+</a> |
+<a href="https://github.com/SonnyDuck/PDF-converting" target="_blank">
+📂 {t("project", lang)}
+</a>
+
+</div>
+""",
+unsafe_allow_html=True
+)
+
 # ===== MAIN CONTENT =====
 def load_css():
     with open("style.css", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 load_css()
-
-
-# ===== INSIGHT SYSTEM =====
-def generate_insights(df, lang, col=None, col_x=None, col_y=None):
-    insights = []
-
-    if col:
-        mean = df[col].mean()
-        median = df[col].median()
-        std = df[col].std()
-        skew = df[col].skew()
-        min_val = df[col].min()
-        max_val = df[col].max()
-
-        if lang == "VI":
-            insights.append(f"Điểm trung bình: {mean:.2f}, trung vị: {median:.2f}")
-        else:
-            insights.append(f"Average: {mean:.2f}, Median: {median:.2f}")
-
-        if std > 2:
-            insights.append(t("insight_spread", lang))
-        else:
-            insights.append(t("insight_focused", lang))
-
-        if skew > 0.5:
-            insights.append(t("insight_skew_right", lang))
-        elif skew < -0.5:
-            insights.append(t("insight_skew_left", lang))
-
-        if max_val >= 9:
-            insights.append(t("insight_high_score", lang))
-        if min_val < 3:
-            insights.append(t("insight_low_score", lang))
-
-    if col_x and col_y:
-        corr = df[col_x].corr(df[col_y])
-        if lang == "VI":
-            insights.append(f"Tương quan giữa {col_x} và {col_y}: {corr:.2f}")
-        else:
-            insights.append(f"Correlation between {col_x} and {col_y}: {corr:.2f}")
-
-        if corr > 0.7:
-            insights.append(t("corr_strong", lang))
-        elif corr > 0.4:
-            insights.append(t("corr_medium", lang))
-        else:
-            insights.append(t("corr_weak", lang))
-
-    return insights
-
-def render_report(insights, lang, extra_text=None):
-    st.markdown(f"<div class='sub-title' style='margin-bottom: 0.5rem;'>{t('report_title', lang)}</div>", unsafe_allow_html=True)
-    for i in insights:
-        st.info(f"**{i}**", icon="💡")
-
-    if extra_text:
-        st.success(f"**{extra_text}**", icon="🎯")
 
 
 # ===== MAIN =====
@@ -173,9 +148,9 @@ if not st.session_state.uploaded_file:
 
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    st.info("👇 " + t("upload_pdf", lang))
+    st.info(t("upload_prompt", lang))
     uploaded_file = st.file_uploader(
-        "",
+        t("upload_pdf", lang),
         type=["pdf"],
         accept_multiple_files=True
     )
@@ -187,8 +162,9 @@ if not st.session_state.uploaded_file:
 
 # ===== DASHBOARD RENDER =====
 uploaded_file = st.session_state.uploaded_file
-st.title("📊 PDF Data Dashboard")
-if st.button("Clear Data"):
+st.title(t("page_title", lang))
+st.markdown(t("page_subtitle", lang), unsafe_allow_html=True)
+if st.button(t("clear_data", lang)):
     st.session_state.uploaded_file = None
     st.rerun()
 
@@ -230,6 +206,26 @@ rename_map = {
 df.rename(columns=rename_map, inplace=True)
 
 
+def localize_col_name(col, lang):
+    label_map = {
+        "MSSV": {"VI": "MSSV", "EN": "Student ID"},
+        "Name": {"VI": "Họ và Tên", "EN": "Name"},
+        "Class": {"VI": "Lớp", "EN": "Class"},
+        COL_CC: {"VI": COL_CC, "EN": "Attendance"},
+        COL_GK: {"VI": COL_GK, "EN": "Midterm"},
+        COL_TL: {"VI": COL_TL, "EN": "Essay"},
+        COL_CK: {"VI": COL_CK, "EN": "Final"},
+        COL_FINAL: {"VI": COL_FINAL, "EN": "Final Score"},
+        "Grade": {"VI": "Xếp loại", "EN": "Grade"},
+        "CK_sim": {"VI": "CK mô phỏng", "EN": "CK Sim"},
+        "Final_sim": {"VI": "Điểm tổng hợp mô phỏng", "EN": "Final Sim"}
+    }
+    return label_map.get(col, {}).get(lang, col)
+
+
+def localize_df_columns(df_obj, lang):
+    return df_obj.rename(columns=lambda c: localize_col_name(c, lang))
+
 
 def classify_grade(score, lang):
     if pd.isna(score): return "Fail" if lang == "EN" else "Yếu/Kém"
@@ -243,9 +239,9 @@ df["Grade"] = df[COL_FINAL].apply(lambda x: classify_grade(x, lang))
 
 # ===== TABS =====
 tab1, tab2, tab3 = st.tabs([
-    t("tab1", lang),
-    t("tab2", lang),
-    t("tab3", lang)
+    f"📊 {t('tab1', lang)}",
+    f"📈 {t('tab2', lang)}",
+    f"🎯 {t('tab3', lang)}"
 ])
 
 # ================= TAB 1 =================
@@ -262,7 +258,7 @@ with tab1:
     st.markdown(clean_html, unsafe_allow_html=True)
 
     st.subheader(t("data_preview", lang))
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(localize_df_columns(df, lang), use_container_width=True)
 
     st.divider()
 
@@ -355,8 +351,41 @@ with tab2:
             df_hist = df_tab2.copy()
             df_hist['ScoreRange'] = pd.cut(df_hist[COL_FINAL], bins=[-1, 3.99, 4.99, 6.49, 7.99, 10], labels=["<4", "4-5", "5-6.5", "6.5-8", "8-10"])
             dist_data = df_hist.groupby(["ScoreRange", "Class"]).size().reset_index(name="Count")
-            fig_stack = px.bar(dist_data, x="ScoreRange", y="Count", color="Class", barmode="stack", color_discrete_sequence=px.colors.qualitative.Safe)
+            fig_stack = px.bar(
+                dist_data,
+                x="ScoreRange",
+                y="Count",
+                color="Class",
+                barmode="stack",
+                color_discrete_sequence=px.colors.qualitative.Safe,
+                labels={
+                    "ScoreRange": t("label_score_range", lang),
+                    "Count": t("label_count", lang),
+                    "Class": localize_col_name("Class", lang)
+                }
+            )
             st.plotly_chart(fig_stack, use_container_width=True)
+            if not dist_data.empty:
+                total_students = dist_data["Count"].sum()
+                bucket_counts = dist_data.groupby("ScoreRange")["Count"].sum()
+                top_bucket = bucket_counts.idxmax()
+                top_pct = (bucket_counts.max() / total_students * 100)
+                low_bucket = bucket_counts[bucket_counts.index.str.contains("<4|4-5")].sum()
+                low_pct = (low_bucket / total_students * 100)
+                if lang == "VI":
+                    insight = f"💡 Phân bố điểm tập trung chủ yếu ở nhóm {top_bucket} ({top_pct:.1f}%). "
+                    if low_pct > 20:
+                        insight += f"Đáng chú ý, có {low_pct:.1f}% sinh viên ở mức dưới trung bình, cho thấy cần cải thiện chất lượng giảng dạy hoặc hỗ trợ học sinh yếu."
+                    else:
+                        insight += "Phân bố khá đồng đều, phản ánh chất lượng đào tạo ổn định."
+                    st.info(insight, icon="💡")
+                else:
+                    insight = f"💡 Score distribution is concentrated in {top_bucket} ({top_pct:.1f}%). "
+                    if low_pct > 20:
+                        insight += f"Notably, {low_pct:.1f}% of students are below average, suggesting need for teaching improvements or student support."
+                    else:
+                        insight += "Distribution is fairly balanced, indicating consistent educational quality."
+                    st.info(insight, icon="💡")
 
         with col_c2:
             st.markdown("### Phân loại Sinh viên" if lang=="VI" else "### Student Classification")
@@ -365,11 +394,45 @@ with tab2:
             grade_class_dist = df_tab2.groupby(['Class', 'Grade']).size().reset_index(name='Count')
             cat_orders = ["Xuất sắc", "Giỏi", "Khá", "Trung bình", "Yếu/Kém"] if lang == "VI" else ["Excellent", "Good", "Fair", "Average", "Fail"]
             fig_grouped = px.bar(
-                grade_class_dist, x="Class", y="Count", color="Grade", barmode="group",
+                grade_class_dist,
+                x="Class",
+                y="Count",
+                color="Grade",
+                barmode="group",
                 color_discrete_sequence=["#0ea5e9", "#2563eb", "#1e3a8a", "#64748b", "#cbd5e1"],
-                category_orders={"Grade": cat_orders}
+                category_orders={"Grade": cat_orders},
+                labels={
+                    "Class": localize_col_name("Class", lang),
+                    "Count": t("label_count", lang),
+                    "Grade": localize_col_name("Grade", lang)
+                }
             )
             st.plotly_chart(fig_grouped, use_container_width=True)
+            if not grade_class_dist.empty:
+                total_students = grade_class_dist["Count"].sum()
+                grade_counts = grade_class_dist.groupby("Grade")["Count"].sum()
+                top_grade = grade_counts.idxmax()
+                top_pct = (grade_counts.max() / total_students * 100)
+                fail_pct = grade_counts.get("Yếu/Kém" if lang == "VI" else "Fail", 0) / total_students * 100
+                excellent_pct = grade_counts.get("Xuất sắc" if lang == "VI" else "Excellent", 0) / total_students * 100
+                if lang == "VI":
+                    insight = f"💡 Học lực chủ yếu tập trung ở '{top_grade}' ({top_pct:.1f}%). "
+                    if fail_pct > 15:
+                        insight += f"Tỷ lệ rớt môn cao ({fail_pct:.1f}%), cần xem xét lại phương pháp giảng dạy hoặc đề thi."
+                    elif excellent_pct > 20:
+                        insight += f"Chất lượng đào tạo xuất sắc với {excellent_pct:.1f}% sinh viên đạt xuất sắc."
+                    else:
+                        insight += "Phân bố học lực tương đối cân bằng giữa các lớp."
+                    st.info(insight, icon="💡")
+                else:
+                    insight = f"💡 Academic performance is mainly concentrated in '{top_grade}' ({top_pct:.1f}%). "
+                    if fail_pct > 15:
+                        insight += f"High failure rate ({fail_pct:.1f}%), suggesting need to review teaching methods or exam difficulty."
+                    elif excellent_pct > 20:
+                        insight += f"Excellent educational quality with {excellent_pct:.1f}% students achieving excellence."
+                    else:
+                        insight += "Grade distribution is relatively balanced across classes."
+                    st.info(insight, icon="💡")
             
         # --- BOTTOM 2 CHARTS ---
         st.markdown("<br>", unsafe_allow_html=True)
@@ -378,9 +441,48 @@ with tab2:
             st.markdown("### Biểu đồ phân tán (Boxplot)" if lang=="VI" else "### Boxplot")
             with st.expander("Hướng dẫn đọc biểu đồ" if lang=="VI" else "How to read this chart"):
                 st.write("Thùng (box) chứa 50% lượng sinh viên phổ biến nhất.\n- **Đường ngang giữa Box**: Điểm trung vị (Median).\n- **Hai biên của Box**: Phân vị thứ 75 (Q3) và 25 (Q1).\n- **Đường gạch trên/dưới (Upper/Lower fence)**: Giới hạn điểm phân bố thông thường.\n- **Các dấu chấm lơ lửng**: Các điểm ngoại lai (Outliers) có điểm số quá cao hoặc quá thấp bất thường." if lang=="VI" else "Boxplot demonstrating standard deviation mapping.")
-            fig_box = px.box(df_tab2, x="Class", y=COL_FINAL, color="Class", color_discrete_sequence=px.colors.qualitative.Safe)
+            fig_box = px.box(
+                df_tab2,
+                x="Class",
+                y=COL_FINAL,
+                color="Class",
+                color_discrete_sequence=px.colors.qualitative.Safe,
+                labels={
+                    "Class": localize_col_name("Class", lang),
+                    COL_FINAL: localize_col_name(COL_FINAL, lang)
+                }
+            )
             st.plotly_chart(fig_box, use_container_width=True)
-            
+            if not df_tab2.empty:
+                class_stats = df_tab2.groupby("Class")[COL_FINAL].describe()
+                best_class = class_stats["50%"].idxmax()
+                worst_class = class_stats["50%"].idxmin()
+                total_outliers = 0
+                for cls in df_tab2["Class"].unique():
+                    cls_data = df_tab2[df_tab2["Class"] == cls][COL_FINAL].dropna()
+                    if len(cls_data) > 0:
+                        q1 = cls_data.quantile(0.25)
+                        q3 = cls_data.quantile(0.75)
+                        iqr = q3 - q1
+                        lower_bound = q1 - 1.5 * iqr
+                        upper_bound = q3 + 1.5 * iqr
+                        outliers = cls_data[(cls_data < lower_bound) | (cls_data > upper_bound)]
+                        total_outliers += len(outliers)
+                if lang == "VI":
+                    insight = f"💡 Lớp {best_class} có điểm trung vị cao nhất, {worst_class} thấp nhất. "
+                    if total_outliers > 0:
+                        insight += f"Có {total_outliers} điểm ngoại lai, cho thấy sự bất thường trong phân bố điểm số."
+                    else:
+                        insight += "Không có điểm ngoại lai, phân bố điểm khá đồng đều."
+                    st.info(insight, icon="💡")
+                else:
+                    insight = f"💡 Class {best_class} has the highest median score, {worst_class} the lowest. "
+                    if total_outliers > 0:
+                        insight += f"There are {total_outliers} outliers, indicating anomalies in score distribution."
+                    else:
+                        insight += "No outliers detected, score distribution is fairly consistent."
+                    st.info(insight, icon="💡")
+
         with col_c4:
             st.markdown("### Tương quan điểm (Scatter Plot)" if lang=="VI" else "### Component Score Correlation")
             with st.expander("Hướng dẫn đọc biểu đồ" if lang=="VI" else "How to read this chart"):
@@ -419,9 +521,20 @@ with tab2:
                 
                 df_scatter['Type'] = df_scatter['Outlier'].map({True: 'Outlier', False: 'Normal'})
                 fig_scatter = px.scatter(
-                    df_scatter, x=col_x, y=COL_FINAL, color="Type",
+                    df_scatter,
+                    x=col_x,
+                    y=COL_FINAL,
+                    color="Type",
                     color_discrete_map={"Normal": "#3b82f6", "Outlier": "#ef4444"},
                     hover_data=["MSSV", "Name", "Class"],
+                    labels={
+                        col_x: localize_col_name(col_x, lang),
+                        COL_FINAL: localize_col_name(COL_FINAL, lang),
+                        "Type": t("label_type", lang),
+                        "MSSV": localize_col_name("MSSV", lang),
+                        "Name": localize_col_name("Name", lang),
+                        "Class": localize_col_name("Class", lang)
+                    },
                     opacity=0.8
                 )
                 fig_scatter.update_traces(marker=dict(size=10, line=dict(width=1, color='White')), selector=dict(mode='markers'))
@@ -430,6 +543,35 @@ with tab2:
                     fig_scatter.add_trace(go.Scatter(x=trendline_dict['x'], y=trendline_dict['y'], mode='lines', name='Trendline' if lang == "EN" else 'Đường xu hướng', line=dict(color='orange', width=3, dash='dash')))
                     
                 st.plotly_chart(fig_scatter, use_container_width=True)
+                if valid_idx.sum() > 1:
+                    correlation = round(x_val.corr(y_val), 2)
+                    outlier_count = int(df_scatter['Outlier'].sum())
+                    if lang == "VI":
+                        insight = f"💡 Mối tương quan giữa {localize_col_name(col_x, lang)} và {localize_col_name(COL_FINAL, lang)} là {correlation}. "
+                        if correlation > 0.7:
+                            insight += "Mối quan hệ mạnh, điểm thành phần dự đoán tốt điểm cuối kỳ. "
+                        elif correlation > 0.3:
+                            insight += "Mối quan hệ trung bình, cần cải thiện sự ổn định. "
+                        else:
+                            insight += "Mối quan hệ yếu, cần chú ý yếu tố khác. "
+                        if outlier_count > 0:
+                            insight += f"Số ngoại lệ: {outlier_count}, có thể là học sinh xuất sắc hoặc cần hỗ trợ."
+                        else:
+                            insight += "Không có ngoại lệ đáng kể."
+                        st.info(insight, icon="💡")
+                    else:
+                        insight = f"💡 The correlation between {localize_col_name(col_x, lang)} and {localize_col_name(COL_FINAL, lang)} is {correlation}. "
+                        if correlation > 0.7:
+                            insight += "Strong relationship, component scores predict final scores well. "
+                        elif correlation > 0.3:
+                            insight += "Moderate relationship, consistency needs improvement. "
+                        else:
+                            insight += "Weak relationship, other factors may influence scores. "
+                        if outlier_count > 0:
+                            insight += f"Outliers: {outlier_count}, possibly exceptional students or those needing support."
+                        else:
+                            insight += "No significant outliers."
+                        st.info(insight, icon="💡")
             else:
                 st.warning("Không tìm thấy cột điểm thành phần." if lang=="VI" else "Component score columns missing.")
 
@@ -487,7 +629,8 @@ with tab2:
         # Float formatting logic to format cleanly
         format_dict = {col: "{:.1f}" for col in df_display.select_dtypes(include=['float64', 'float32']).columns}
         
-        styled_df = df_display.style.apply(highlight_smart_table, axis=1).format(format_dict)
+        df_display_renamed = df_display.rename(columns=lambda c: localize_col_name(c, lang))
+        styled_df = df_display_renamed.style.apply(highlight_smart_table, axis=1).format(format_dict)
         st.dataframe(styled_df, use_container_width=True)
 
 # ================= TAB 3 =================
@@ -524,89 +667,18 @@ with tab3:
             exist_affected = [c for c in affected_cols if c in newly_failed.columns]
             
             format_sim = {col: "{:.1f}" for col in newly_failed[exist_affected].select_dtypes(include=['float64', 'float32']).columns}
-            st.dataframe(newly_failed[exist_affected].style.format(format_sim), use_container_width=True)
+            st.dataframe(localize_df_columns(newly_failed[exist_affected], lang).style.format(format_sim), use_container_width=True)
             
     elif sim_drop == 0:
         st.info("👈 Kéo thanh trượt về bên trái để bắt đầu mô phỏng." if lang=="VI" else "👈 Slide left to simulate.")
         
     st.markdown("---")
     
-    st.markdown("### 🖨️ Phân hệ PDF Export" if lang=="VI" else "### 🖨️ PDF Export Module")
-    st.markdown("Chọn 1 trong 2 định dạng xuất (Báo cáo Thô / Báo cáo Chuyên Sâu)")
-    
-    col_e1, col_e2 = st.columns(2)
+    st.markdown(t("pdf_export_title", lang))
+    st.markdown(t("pdf_export_desc", lang))
+
+    col_e1, _ = st.columns([3, 1])
     with col_e1:
-        st.markdown(f"**Option 1**: {t('btn_export_1', lang)}")
+        st.markdown(f"**{t('option_1', lang)}**: {t('btn_export_1', lang)}")
         render_report_section(df, "tab3_opt1", lang, metadata=metadata)
         
-    with col_e2:
-        st.markdown(f"**Option 2**: {t('btn_export_2', lang)}")
-        
-        if st.button("Tạo Báo cáo Bản Đồ (PDF Analytics)"):
-            with st.spinner("Đang xây dựng PDF từ dữ liệu hiển thị..."):
-                try:
-                    from src.report_generator import generate_visual_pdf_report
-                    import plotly.graph_objects as go
-                    
-                    insights_payload = {}
-                    
-                    # Calculate insights manually for PDF
-                    target_df = df_tab2 if 'df_tab2' in locals() else df
-                    if COL_FINAL in target_df.columns:
-                        try:
-                            # top class
-                            class_avg = target_df.groupby('Class')[COL_FINAL].mean()
-                            insights_payload['top_class'] = class_avg.idxmax() if not class_avg.empty else "N/A"
-                            # least variance class (tightest IQR)
-                            class_iqr = target_df.groupby('Class')[COL_FINAL].apply(lambda x: x.quantile(0.75) - x.quantile(0.25))
-                            insights_payload['least_var'] = class_iqr.idxmin() if not class_iqr.empty else "N/A"
-                        except:
-                            pass
-                            
-                    if 'new_pass' in locals():
-                        insights_payload['pass_drop'] = f"Kéo thanh trượt {-sim_drop} điểm => Tỉ lệ Pass lùi lại tận {(old_pass - new_pass):.1f}% so với gốc."
-                    
-                    try:
-                        kpi_data = {
-                            'total': len(target_df),
-                            'avg': float(avg_score) if 'avg_score' in locals() else float(target_df[COL_FINAL].mean()),
-                            'pass_rate': float(pass_rate) if 'pass_rate' in locals() else float((target_df[COL_FINAL] >= 5).mean() * 100),
-                            'excellent': int((target_df[COL_FINAL] >= 8).sum()),
-                            'gpa': float(gpa_avg) if 'gpa_avg' in locals() else 0.0
-                        }
-                        insights_payload['kpis'] = kpi_data
-                    except:
-                        pass
-                    
-                    # Clone charts and force white background / black text just for PDF output!
-                    def capture_pdf_chart(fig):
-                        pdf_fig = go.Figure(fig)
-                        pdf_fig.update_layout(template="plotly_white", plot_bgcolor='white', paper_bgcolor='white', font=dict(color='black'))
-                        pdf_fig.update_xaxes(color='black', gridcolor='#e5e5e5')
-                        pdf_fig.update_yaxes(color='black', gridcolor='#e5e5e5')
-                        return pdf_fig.to_image(format="png", width=900, height=450, scale=1.5)
-
-                    if 'fig_stack' in locals(): insights_payload['img_stack'] = capture_pdf_chart(fig_stack)
-                    if 'fig_grouped' in locals(): insights_payload['img_grouped'] = capture_pdf_chart(fig_grouped)
-                    if 'fig_box' in locals(): insights_payload['img_box'] = capture_pdf_chart(fig_box)
-                    if 'fig_scatter' in locals(): insights_payload['img_scatter'] = capture_pdf_chart(fig_scatter)
-                        
-                    pdf2_bytes = generate_visual_pdf_report(df, lang, metadata, insights_payload)
-                    
-                    if isinstance(pdf2_bytes, bytearray):
-                        pdf2_bytes = bytes(pdf2_bytes)
-                    elif isinstance(pdf2_bytes, str):
-                        pdf2_bytes = pdf2_bytes.encode('latin-1')
-                        
-                    st.session_state['report_2'] = pdf2_bytes
-                except Exception as e:
-                    st.error(f"Lỗi khối tạo PDF Option 2 {e}")
-                    
-        if 'report_2' in st.session_state:
-            st.download_button(
-                label="📥 Tải xuống PDF Option 2",
-                data=st.session_state['report_2'],
-                file_name="Visual_Insights_Report.pdf",
-                mime="application/pdf"
-            )
-        st.caption("*(Công cụ tạo PDF tích hợp Insights chuyên sâu từ tương tác hiển thị. Bản Export sẽ đính kèm Nhận Xét text vì trình duyệt cloud không hỗ trợ render Plotly-Kaleido trực tiếp)*")
