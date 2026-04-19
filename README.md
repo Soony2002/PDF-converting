@@ -29,8 +29,8 @@ Một ứng dụng web phân tích dữ liệu bảng điểm từ PDF một cá
 
 ### Bước 1: Clone repository
 ```bash
-git clone https://github.com/yourusername/pdf-converting.git
-cd pdf-converting
+git clone https://github.com/Soony2002/PDF-converting.git
+cd PDF-converting
 ```
 
 ### Bước 2: Tạo môi trường ảo (khuyến nghị)

@@ -1,8 +1,9 @@
 import pandas as pd
 import pdfplumber
 import re
+import streamlit as st
 
-
+@st.cache_data
 def extract_pdf_tables(uploaded_files):
 
     tables = []
